@@ -1,0 +1,8 @@
+No more room in vector for push_back?
+
+Under the hood:
+1. Make a new dynamically allocated array
+2. When you increase size of array, at least double the size
+3. Move everything from old array to new array
+4. Deallocate old array
+5. Make old pointer point to the new array

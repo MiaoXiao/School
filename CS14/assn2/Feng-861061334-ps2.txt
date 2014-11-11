@@ -1,0 +1,122 @@
+Name: Rica Feng
+ID: 861061334	
+Date: 10/21/14
+Course: CS14
+Assn: PS2
+
+PART A:
+	i) T(n) = 4n + 1
+	
+		O(n) + O(1)
+	
+		Answer: O(n), O(nlog(n)), O(log(n))
+	
+	ii) T(n) = 3n^3 + 2n^2 + 1
+	
+		O(n^3) + O(n^2) + O(1)
+		
+		Answer: O(n^2), O(2^n), O(n), O(nlog(n)), O(log(n))
+		Note: O(n^3) also fits, but is not listed as a possible answer.
+		
+	iii) T(n) = 3n + log(n)
+	
+		O(n) + O(log(n))
+		
+		Answer: O(n), O(nlog(n)), O(log(n))
+	
+	iv) T(n) = (10) if n ≤ 3
+		(1 + T(n/3) + T(n/3)) if n > 3
+		
+		O(logn)
+		
+		Answer: O(log(n)), O(nlog(n))
+	
+Part B:
+
+	2 milli seconds to execute an input size of 10
+
+	i) If the running time of the function is Θ(n^2) and lower-order terms are small enough to be ignored, how long
+	will the function take on an input of size 50? Give your answer in a reasonable unit (that is one in which the
+	answer is not ridiculously large or small).
+
+		10^2 = 100 in 2 milli seconds
+		50^2 = 2,500 in 50 milli seconds
+
+		Answer: 50 milli seconds
+
+	(ii) Again, given the running time is Θ(n^2) and lower-order terms can be ignored, what’s the largest sized input you can run and complete in an hour?
+
+		3,600,000 milli seconds in an hour
+		100 in 2 milli seconds
+		
+		Every milli secondis equal to 50 in run time. So if there are 3,600,000 milli seconds, multiply that by 50 get the run time.
+		3,600,000 * 2 = 180,000,000
+		
+		n^2 = 180,000,000 in 36,000,000 milli seconds
+		
+		sqrt(180,000,000) = n
+		
+		Answer: Size of 13,416
+
+	(iii) If the running time is Θ(2^n) and lower-order terms can be ignored, how long will the function take on an input
+	of size 50? Give your answer in a reasonable unit.
+	
+		2^10 = 1024 in 2 milli seconds
+		2^50 = 1,099,511,627,776 milli seconds or
+		
+		Answer: 12,725.83 days
+	
+	(iv) Given a running time of Θ(2^n) and ignoring lower-order terms, what is the largest sized input you can run and complete in an hour?
+		
+		3,600,000 milli seconds in an hour
+		100 in 2 milli seconds
+		
+		Every milli second is equal to 50 in run time. So if there are 3,600,000 milli seconds, multiply that by 50 get the run time.
+		3,600,000 * 2 = 180,000,000
+		
+		2^n = 180,000,000
+		
+		Answer: Size of 27
+
+Part C:
+
+	Consider the following algorithm to decide whether an integer (represented as type T) is a perfect square.
+	
+	template < typename T >
+	bool issquarehelp ( T n , T lb , T ub ) 
+	{
+		T mid = ( lb + ub )/2;
+		T midsq = mid * mid ;
+		if ( midsq == n ) return true ;
+		if ( lb == ub ) return false ;
+		if ( midsq > n ) return issquarehelp (n , lb , mid -1);
+		if ( midsq < n ) return issquarehelp (n , mid +1 , ub );
+	}
+	
+	template < typename T >
+	bool issquare ( T n ) 
+	{
+		return issquarehelp (n ,1 , n );
+	}
+	
+	(i) Assume T is int. What is the running time of issquare in terms of n in Θ() notation? You should analyze
+	the running time of issquarehelp in terms of the quantity ub - lb.
+		
+		Answer:O(log(n))
+		The recursive function issquarehelp (which is used in isquare) will always, at worst, take O(log(n)) to solve, because the function will only look in the sections that are within the the ub and lb.
+	
+	(ii) Still letting T be int, let b be the number of bits in the representation of n. (For example, the number 3 requires
+	2 bits; the number 60 requires 7 bits.) What is the running time of issquare in terms of b in Θ() notation.
+
+		Answer: O(b)
+		The running time at worst will simply be the amount of bits that were passed in. The runtime will only increase by 1 whenever another bit is needed, so the run time will only increase linearly.
+	
+	(iii) Now let T be an arbitrary-precision number data structure, one that keeps its values as an (expandable) array
+	of bits so that it can grow to be as large as necessary (thus we can represent arbitrarily large numbers — using
+	more memory, of course).
+	Addition, comparison, and subtraction of such numbers each take Θ(b) time where b is the number of bits in
+	the values. Multiplication takes Θ (b(ln b)(ln ln b)) time.
+	What is the running time of issquare in terms of b in Θ() notation for this situation?
+	
+		Answer: O(b(ln b)(ln ln b))
+		Since the function multiplies two numbers, and its run time is O(b(ln b)(ln ln b)), and it is the most exapnding term of the function, the run time of the entire function in bits is O(b(ln b)(ln ln b)).

@@ -3,21 +3,21 @@
 using namespace std;
 
 //store default pussle
-int puzzledefault[3][3] = {{}, {}, {}};
+int puzzledefault[3][3] = {{1, 3, 2}, {4, 9, 5}, {8, 6, 7}};
 //store custom key
 int puzzlecustom[3][3];
 //9 is the blank spot
 int puzzlekey[3][3] = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
 
 //displays the custom puzzle
-void displayCustomPuzzle()
+void displayCustomPuzzle(int puzzle[][3])
 {
 	cout << endl;
 	for (unsigned int i = 0; i < 3; ++i)
 	{
 		for (unsigned int j = 0; j < 3; ++j)
 		{
-			cout << puzzlecustom[i][j] << " ";
+			cout << puzzle[i][j] << " ";
 		}
 		cout << endl;
 	}
@@ -56,6 +56,6 @@ int main()
 			}
 		}
 		
-		displayCustomPuzzle();
+		displayCustomPuzzle(puzzlecustom);
 	}
 }

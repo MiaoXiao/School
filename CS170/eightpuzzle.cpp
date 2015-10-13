@@ -23,6 +23,12 @@ void displayCustomPuzzle()
 	}
 }
 
+//checks to see if goal state is reached
+bool checkGoalState()
+{
+	return (puzzledefault == puzzlekey || puzzlecustom == puzzlekey);
+}
+
 int main()
 {
 	int puzzletype;

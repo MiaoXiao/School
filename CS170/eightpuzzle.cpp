@@ -5,16 +5,17 @@
 using namespace std;
 
 //store default pussle
-int puzzledefault[3][3] = {{1, 3, 2}, {4, 9, 5}, {8, 6, 7}};
+vector<vector <int> > puzzledefault;
+vector<int> puzzledefaultvalues;
 //store custom key
-int puzzlecustom[3][3];
+vector<vector <int> > puzzlecustom;
 //9 is the blank spot
-int puzzlegoal[3][3] = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+vector<vector <int> > puzzlegoal;
 
 //holds data about one state, and its children
 struct State
 {
-	int state[3][3];
+	vector<vector<int> > state;
 	//g(n)
 	int depth;
 	//next possible states that can be reached
@@ -24,20 +25,62 @@ struct State
 //holds tree of all states
 struct Tree
 {
+	State currentstate;
 	vector<State> tree;
 };
 
-//displays the custom puzzle
-void displayCustomPuzzle(int puzzle[][3])
+//initalize puzzle vectors
+void initVectors()
 {
+	puzzledefault.reserve(3);
+	puzzlecustom.reserve(3);
+	for (unsigned int i = 0; i < 3; ++i)
+	{
+		puzzlecustom[i].reserve(3);
+	}
+	puzzlegoal.reserve(3);
+	
+	//first row
+	puzzledefaultvalues.push_back(1);
+	puzzledefaultvalues.push_back(3);
+	puzzledefaultvalues.push_back(2);
+	//second row
+	puzzledefaultvalues.push_back(4);
+	puzzledefaultvalues.push_back(9);
+	puzzledefaultvalues.push_back(5);
+	//third row
+	puzzledefaultvalues.push_back(8);
+	puzzledefaultvalues.push_back(6);
+	puzzledefaultvalues.push_back(7);
+	int spot = 0;
+	int value = 1;
+	for (unsigned int i = 0; i < 3; ++i)
+	{
+		for (unsigned int j = 0; j < 3; ++j)
+		{
+			//cout << "spot: " << spot << endl;
+			//cout << "value: " << puzzledefaultvalues[value - 1] << endl;
+			puzzledefault[spot].push_back(puzzledefaultvalues[value - 1]);
+			puzzlegoal[spot].push_back(value);
+			value++;
+		}
+		spot++;
+	}
+}
+
+//displays the custom puzzle
+void displayCustomPuzzle(vector<vector <int> > &puzzle)
+{
+	//cout << "size: " << puzzle.size() << endl;
+	//cout << "element: " << puzzle[0][0] << endl;
 	cout << endl;
 	for (unsigned int i = 0; i < 3; ++i)
 	{
-			for (unsigned int j = 0; j < 3; ++j)
-			{
-					cout << puzzle[i][j] << " ";
-			}
-			cout << endl;
+		for (unsigned int j = 0; j < 3; ++j)
+		{
+				cout << puzzle[i][j] << " ";
+		}
+		cout << endl;
 	}
 }
 
@@ -48,7 +91,7 @@ bool checkGoalState()
 }
 
 //find correct indexes of where number n piece should be
-void findCorrectPos(int n, int goalstate[][3], int &ifinal, int &jfinal)
+void findCorrectPos(int n, vector<vector<int> > goalstate, int &ifinal, int &jfinal)
 {
 	for (unsigned int i = 0; i < 3; ++i)
 	{
@@ -66,7 +109,7 @@ void findCorrectPos(int n, int goalstate[][3], int &ifinal, int &jfinal)
 }
 
 //returns estimated cost of moving piece to correct spot
-int getHeuristic(int currentstate[][3], int goalstate[][3])
+int getHeuristic(vector<vector<int> > currentstate, vector<vector<int> > goalstate)
 {
 	int total = 0;
 	int ifinal = 0;
@@ -86,8 +129,23 @@ int getHeuristic(int currentstate[][3], int goalstate[][3])
 	return total;
 }
 
+//find possible operators
+//operators: move blank (9), left, up, right, down
+//return if operation is sucessful or not
+//tree will contain final current state
+bool aStarAlgorithm(Tree &t)
+{
+	State s;
+	
+}
+
 int main()
 {
+	initVectors();
+	Tree t;
+	
+	
+	
 	int puzzletype;
 	cout << "Welcome to Rica's soon to be A+ eight-puzzle solver." << endl;
 	cout << "Type '1' to use default puzzle, type anything else to use custom puzzle." << endl;
@@ -95,7 +153,8 @@ int main()
 
 	if (puzzletype == 1) //default puzzle
 	{
-
+		t.currentstate.state = puzzledefault;
+		aStarAlgorithm(t);
 	}
 	else //custom puzzle
 	{
@@ -113,7 +172,14 @@ int main()
 			}
 		}
 
+		t.currentstate.state = puzzlecustom;
+		aStarAlgorithm(t);
+		
+		//cout << "element: " << puzzledefault[0][0] << endl;
+		displayCustomPuzzle(puzzledefault);
 		displayCustomPuzzle(puzzlecustom);
-		cout << "curr h: " << getHeuristic(puzzlecustom, puzzlegoal) << endl;
+		displayCustomPuzzle(puzzlegoal);
+		
+		//cout << "curr h: " << getHeuristic(puzzlecustom, puzzlegoal) << endl;
 	}
 }

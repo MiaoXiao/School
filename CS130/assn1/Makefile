@@ -1,6 +1,6 @@
 CXX       = g++
 CXXFLAGS  = -g -O2 -Wall -c
-LDFLAGS   = -g -O2 -Wall -lGLU -lGL -lglut
+LDFLAGS   = -g -O2 -Wall -lGL -lglut
 RM        = rm -f
 EXEC      = a.out
 

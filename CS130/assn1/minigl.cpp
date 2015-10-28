@@ -7,6 +7,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <iostream>
 #include <vector>
 #include <stack>
 #include "minigl.h"
@@ -17,14 +18,28 @@ using namespace std;
 //triangles or quads
 int CURRMODE = -1;
 //holds matrixes for transofmrations
-stack<vector<int> > MATRIX;
+stack<vector<MGLfloat> > MATRIX;
 //current color
-vector<MGLbyte> CURRCOLOR;
+MGLpixel CURRCOLOR;
+
+//converts a mglfloat *matrix to its vector counterpart
+vector<MGLfloat> convertMGLfloattoVector(const MGLfloat *matrix)
+{
+	vector<MGLfloat> v;
+	for (unsigned i = 0; i < 4; ++i)
+	{
+		for (unsigned j = 0; j < 4; ++j)
+		{
+			v.push_back(matrix[i + (j * 4)]);
+		}
+	}
+	return v;
+}
 
 //return identity matrix
-vector<int> returnIdentityMatrix()
+vector<MGLfloat> returnIdentityMatrix()
 {
-	vector<int> v;
+	vector<MGLfloat> v;
 	//first row
 	v.push_back(1);
 	v.push_back(0);
@@ -56,7 +71,6 @@ inline void MGL_ERROR(const char* description) {
     exit(1);
 }
 
-
 /**
  * Read pixel data starting with the pixel at coordinates
  * (0, 0), up to (width,  height), into the array
@@ -73,7 +87,12 @@ void mglReadPixels(MGLsize width,
                    MGLsize height,
                    MGLpixel *data)
 {
-	
+	for (unsigned int i = 0; i != '\0'; ++i)
+	{
+		MGL_SET_RED(0, 255);
+		data[i] = MGL_GET_RED(255);
+		cout << "reading " << i << endl;
+	}
 }
 
 /**
@@ -148,6 +167,7 @@ void mglPushMatrix()
 	{
 		MATRIX.push(MATRIX.top());
 	}
+	else cerr << "Cannot push matrix, matrix empty." << endl;
 }
 
 /**
@@ -156,8 +176,8 @@ void mglPushMatrix()
  */
 void mglPopMatrix()
 {
-	//only pop if stack is not empty
-	if (!MATRIX.empty()) MATRIX.pop();
+	//only use this func to pop if stack is not empty
+	MATRIX.pop();
 }
 
 /**
@@ -165,7 +185,7 @@ void mglPopMatrix()
  */
 void mglLoadIdentity()
 {
-	mglPopMatrix();
+	if (!MATRIX.empty()) mglPopMatrix();
 	MATRIX.push(returnIdentityMatrix());
 }
 
@@ -183,7 +203,11 @@ void mglLoadIdentity()
  */
 void mglLoadMatrix(const MGLfloat *matrix)
 {
-
+	if (!MATRIX.empty())
+	{
+		mglPopMatrix();
+		MATRIX.push(convertMGLfloattoVector(matrix));
+	}
 }
 
 /**
@@ -200,6 +224,30 @@ void mglLoadMatrix(const MGLfloat *matrix)
  */
 void mglMultMatrix(const MGLfloat *matrix)
 {
+	vector<MGLfloat> v;
+	vector<MGLfloat> current;
+	vector<MGLfloat> top;
+	if (!MATRIX.empty()) 
+	{
+		top = MATRIX.top();
+		mglPopMatrix();
+		
+		current = convertMGLfloattoVector(matrix);
+		
+		//now use crossproduct to multiply the vectors
+		for (unsigned int i = 0; i < 4; ++i)
+		{
+			int row = 0;
+			int column = 0;
+			int componentsum = 0;
+			for (unsigned int j = 0; j < 4; ++j)
+			{
+				componentsum += (top[row + i] * current[column + i]);
+				column += 4;
+				row++;
+			}
+		}
+	}
 }
 
 /**
@@ -267,7 +315,7 @@ void mglColor(MGLbyte red,
               MGLbyte green,
               MGLbyte blue)
 {
-	CURRCOLOR.push_back(red);
-	CURRCOLOR.push_back(green);
-	CURRCOLOR.push_back(blue);
+	MGL_SET_RED(CURRCOLOR, red);
+	MGL_SET_GREEN(CURRCOLOR, green);
+	MGL_SET_BLUE(CURRCOLOR, blue);
 }

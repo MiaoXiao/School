@@ -19,21 +19,29 @@ int CURRMODE = -1;
 //holds matrixes for transofmrations
 stack<vector<int> > MATRIX;
 //current color
-vector<int> CURRCOLOR;
-
-//set active color
-void setCurrColor(int r, int g, int b)
-{
-	CURRCOLOR.push_back(r);
-	CURRCOLOR.push_back(g);
-	CURRCOLOR.push_back(b);
-}
+vector<MGLbyte> CURRCOLOR;
 
 //return identity matrix
 vector<int> returnIdentityMatrix()
 {
 	vector<int> v;
+	//first row
 	v.push_back(1);
+	v.push_back(0);
+	v.push_back(0);
+	v.push_back(0);
+	//second row
+	v.push_back(0);
+	v.push_back(1);
+	v.push_back(0);
+	v.push_back(0);
+	//third row
+	v.push_back(0);
+	v.push_back(0);
+	v.push_back(1);
+	v.push_back(0);
+	//fourth row
+	v.push_back(0);
 	v.push_back(0);
 	v.push_back(0);
 	v.push_back(1);
@@ -148,7 +156,8 @@ void mglPushMatrix()
  */
 void mglPopMatrix()
 {
-	MATRIX.pop();
+	//only pop if stack is not empty
+	if (!MATRIX.empty()) MATRIX.pop();
 }
 
 /**
@@ -156,7 +165,7 @@ void mglPopMatrix()
  */
 void mglLoadIdentity()
 {
-	if (!MATRIX.empty()) mglPopMatrix();
+	mglPopMatrix();
 	MATRIX.push(returnIdentityMatrix());
 }
 
@@ -174,6 +183,7 @@ void mglLoadIdentity()
  */
 void mglLoadMatrix(const MGLfloat *matrix)
 {
+
 }
 
 /**
@@ -257,5 +267,7 @@ void mglColor(MGLbyte red,
               MGLbyte green,
               MGLbyte blue)
 {
-	setCurrColor(red, green, blue);
+	CURRCOLOR.push_back(red);
+	CURRCOLOR.push_back(green);
+	CURRCOLOR.push_back(blue);
 }

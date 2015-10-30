@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stdlib.h>
+#include <stack>
 #include <vector>
 
 using namespace std;
@@ -12,21 +13,22 @@ vector<vector <int> > puzzlecustom;
 //9 is the blank spot
 vector<vector <int> > puzzlegoal;
 
+//index in 2d vector
+struct Index
+{
+		unsigned int x;
+		unsigned int y;
+};
+
 //holds data about one state, and its children
 struct State
 {
-	vector<vector<int> > state;
+	//current puzzle
+	vector<vector<int> > puzzle;
+	//index of 9
+	Index blank;
 	//g(n)
 	int depth;
-	//next possible states that can be reached
-	vector<int> children;
-};
-
-//holds tree of all states
-struct Tree
-{
-	State currentstate;
-	vector<State> tree;
 };
 
 //initalize puzzle vectors
@@ -129,22 +131,106 @@ int getHeuristic(vector<vector<int> > currentstate, vector<vector<int> > goalsta
 	return total;
 }
 
+
+//returns false if this check is already in list
+bool checkStates(vector<State> list, State check)
+{
+	for (unsigned int i = 0; i < list.size(); ++i)
+	{
+			if (list[i].puzzle == check.puzzle) return false;
+	}
+	return true;
+}
+
 //find possible operators
 //operators: move blank (9), left, up, right, down
-//return if operation is sucessful or not
-//tree will contain final current state
-bool aStarAlgorithm(Tree &t)
+//return if operation is sucessful or nots
+bool aStarAlgorithm(State initial)
 {
-	State s;
+	stack<State> avaliableStates;
+	avaliableStates.push(initial);
 	
+	//check this to see which states have already been traversed
+	vector<State> doneStates;
+	
+	while (!avaliableStates.empty())
+	{
+		State checking = avaliableStates.top();
+		
+		int temp;
+		//check operation moving 9 down
+		if (checking.blank.x != 2)
+		{
+			State next = avaliableStates.top();
+			
+			//swap elements
+			next.puzzle[next.blank.x][next.blank.y] = next.puzzle[next.blank.x + 1][next.blank.y];
+			next.blank.x++;
+			
+			//only add state if it has not been searched before
+			if (checkStates(doneStates, next))
+			{
+				avaliableStates.push(next);
+				doneStates.push_back(next);
+			}
+		}
+		//check operation moving 9 right
+		if (checking.blank.y != 2)
+		{
+			State next = avaliableStates.top();
+			
+			//swap elements
+			next.puzzle[next.blank.x][next.blank.y] = next.puzzle[next.blank.x][next.blank.y + 1];
+			next.blank.y++;
+			
+			//only add state if it has not been searched before
+			if (checkStates(doneStates, next))
+			{
+				avaliableStates.push(next);
+				doneStates.push_back(next);
+			}
+		}
+		//check operation moving 9 up
+		if (checking.blank.x != 0)
+		{
+			State next = avaliableStates.top();
+			
+			//swap elements
+			next.puzzle[next.blank.x][next.blank.y] = next.puzzle[next.blank.x - 1][next.blank.y];
+			next.blank.x--;
+			
+			//only add state if it has not been searched before
+			if (checkStates(doneStates, next))
+			{
+				avaliableStates.push(next);
+				doneStates.push_back(next);
+			}
+		}
+		//check operation moving 9 left
+		if (checking.blank.y != 0)
+		{
+			State next = avaliableStates.top();
+			
+			//swap elements
+			next.puzzle[next.blank.x][next.blank.y] = next.puzzle[next.blank.x][next.blank.y - 1];
+			next.blank.y--;
+			
+			//only add state if it has not been searched before
+			if (checkStates(doneStates, next))
+			{
+				avaliableStates.push(next);
+				doneStates.push_back(next);
+			}
+		}
+		avaliableStates.pop();
+	}
 }
 
 int main()
 {
+	State initial;
+	//init vectors
 	initVectors();
-	Tree t;
-	
-	
 	
 	int puzzletype;
 	cout << "Welcome to Rica's soon to be A+ eight-puzzle solver." << endl;
@@ -153,8 +239,12 @@ int main()
 
 	if (puzzletype == 1) //default puzzle
 	{
-		t.currentstate.state = puzzledefault;
-		aStarAlgorithm(t);
+		initial.puzzle = puzzledefault;
+		initial.blank.y = 1;
+		initial.blank.y = 1;
+		initial.depth = 0;
+		
+		aStarAlgorithm(initial);
 	}
 	else //custom puzzle
 	{
@@ -168,17 +258,23 @@ int main()
 			for (unsigned int j = 0; j < 3; ++j)
 			{
 				cin >> spot;
+				if (spot == 9)
+				{
+					initial.blank.x = i;
+					initial.blank.y = j;
+				}
 				puzzlecustom[i][j] = spot;
 			}
 		}
 
-		t.currentstate.state = puzzlecustom;
-		aStarAlgorithm(t);
+		initial.puzzle = puzzlecustom;
+		initial.depth = 0;
+		aStarAlgorithm(initial);
 		
 		//cout << "element: " << puzzledefault[0][0] << endl;
-		displayCustomPuzzle(puzzledefault);
-		displayCustomPuzzle(puzzlecustom);
-		displayCustomPuzzle(puzzlegoal);
+		//displayCustomPuzzle(puzzledefault);
+		//displayCustomPuzzle(puzzlecustom);
+		//displayCustomPuzzle(puzzlegoal);
 		
 		//cout << "curr h: " << getHeuristic(puzzlecustom, puzzlegoal) << endl;
 	}

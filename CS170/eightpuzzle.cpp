@@ -1,6 +1,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <stack>
+#include <queue>
 #include <vector>
 
 using namespace std;
@@ -29,31 +30,70 @@ struct State
 	Index blank;
 	//g(n)
 	int depth;
+	//f(n)
+	int manhatten;
+	//total hearuestic
+	int total;
+	
+	//parent state
+	int parent;
+	
+	//swap two elements in puzzle
+	void swap(int x1, int y1, int x2, int y2)
+	{
+		int temp = puzzle[x1][y1];
+		puzzle[x1][y1] = puzzle[x2][y2];
+		puzzle[x2][y2] = temp;
+	}
 };
+
+//holds all possible states
+struct Tree
+{
+	vector<State> list;
+};
+
+//displays an 8 puzzle
+void displayPuzzle(vector<vector<int> > s)
+{
+	//cout << "size: " << s.size() << endl;
+	//cout << "element: " << s[0][0] << endl;
+	for (unsigned int i = 0; i < 3; ++i)
+	{
+		for (unsigned int j = 0; j < 3; ++j)
+		{
+				cout << s[i][j] << " ";
+		}
+		cout << endl;
+	}
+	cout << endl;
+}
 
 //initalize puzzle vectors
 void initVectors()
 {
-	puzzledefault.reserve(3);
-	puzzlecustom.reserve(3);
+	vector<int> v;
+	
 	for (unsigned int i = 0; i < 3; ++i)
 	{
-		puzzlecustom[i].reserve(3);
+		puzzledefault.push_back(v);
+		puzzlecustom.push_back(v);
+		puzzlegoal.push_back(v);
 	}
-	puzzlegoal.reserve(3);
 	
 	//first row
 	puzzledefaultvalues.push_back(1);
+	puzzledefaultvalues.push_back(9);
 	puzzledefaultvalues.push_back(3);
-	puzzledefaultvalues.push_back(2);
 	//second row
 	puzzledefaultvalues.push_back(4);
-	puzzledefaultvalues.push_back(9);
+	puzzledefaultvalues.push_back(2);
 	puzzledefaultvalues.push_back(5);
 	//third row
+	puzzledefaultvalues.push_back(7);
 	puzzledefaultvalues.push_back(8);
 	puzzledefaultvalues.push_back(6);
-	puzzledefaultvalues.push_back(7);
+	
 	int spot = 0;
 	int value = 1;
 	for (unsigned int i = 0; i < 3; ++i)
@@ -68,39 +108,26 @@ void initVectors()
 		}
 		spot++;
 	}
-}
-
-//displays the custom puzzle
-void displayCustomPuzzle(vector<vector <int> > &puzzle)
-{
-	//cout << "size: " << puzzle.size() << endl;
-	//cout << "element: " << puzzle[0][0] << endl;
-	cout << endl;
-	for (unsigned int i = 0; i < 3; ++i)
-	{
-		for (unsigned int j = 0; j < 3; ++j)
-		{
-				cout << puzzle[i][j] << " ";
-		}
-		cout << endl;
-	}
+	//displayPuzzle(puzzledefault);
+	//displayPuzzle(puzzlecustom);
+	//displayPuzzle(puzzlegoal);
 }
 
 //checks to see if goal state is reached
-bool checkGoalState()
+bool checkGoalState(vector<vector<int> > s)
 {
-	return (puzzledefault == puzzlegoal || puzzlecustom == puzzlegoal);
+	return (s == puzzlegoal);
 }
 
 //find correct indexes of where number n piece should be
-void findCorrectPos(int n, vector<vector<int> > goalstate, int &ifinal, int &jfinal)
+void findCorrectPos(int n, int &ifinal, int &jfinal)
 {
 	for (unsigned int i = 0; i < 3; ++i)
 	{
 		for (unsigned int j = 0; j < 3; ++j)
 		{
 			//once correct index found, return
-			if (n == goalstate[i][j])
+			if (n == puzzlegoal[i][j])
 			{
 				ifinal = i;
 				jfinal = j;
@@ -110,8 +137,8 @@ void findCorrectPos(int n, vector<vector<int> > goalstate, int &ifinal, int &jfi
 	}
 }
 
-//returns estimated cost of moving piece to correct spot
-int getHeuristic(vector<vector<int> > currentstate, vector<vector<int> > goalstate)
+//returns estimated cost of moving piece to correct spot using manhatten distance
+int manhattenHeuristic(vector<vector<int> > currentstate)
 {
 	int total = 0;
 	int ifinal = 0;
@@ -121,9 +148,9 @@ int getHeuristic(vector<vector<int> > currentstate, vector<vector<int> > goalsta
 		for (unsigned int j = 0; j < 3; ++j)
 		{
 			//if spots do not match, find manhatten distance
-			if (currentstate[i][j] != 9 && currentstate[i][j] != goalstate[i][j])
+			if (currentstate[i][j] != 9 && currentstate[i][j] != puzzlegoal[i][j])
 			{
-				findCorrectPos(currentstate[i][j], goalstate, ifinal, jfinal);
+				findCorrectPos(currentstate[i][j], ifinal, jfinal);
 				total += abs(i - ifinal) + abs(j - jfinal);
 			}
 		}
@@ -131,99 +158,152 @@ int getHeuristic(vector<vector<int> > currentstate, vector<vector<int> > goalsta
 	return total;
 }
 
-
 //returns false if this check is already in list
-bool checkStates(vector<State> list, State check)
+bool checkStates(vector<State> list, vector<vector<int> > check)
 {
 	for (unsigned int i = 0; i < list.size(); ++i)
 	{
-			if (list[i].puzzle == check.puzzle) return false;
+		/*
+		cout << "comparing: " << endl;
+		displayPuzzle(list[i].puzzle);
+		cout << "to:" << endl;
+		displayPuzzle(check); */
+		for (unsigned int j = 0; j < 3; ++j)
+		{
+			for (unsigned int k = 0; k < 3; ++k)
+			{
+				cout << "comparing" << list[i].puzzle[j][k] << " and " << check[j][k] << endl;
+				if (list[i].puzzle[j][k] != check[j][k]) return true;
+			}
+		}
 	}
-	return true;
+	return false;
 }
 
-//find possible operators
-//operators: move blank (9), left, up, right, down
-//return if operation is sucessful or nots
-bool aStarAlgorithm(State initial)
+/*
+//comparotor for priority queue
+struct OrderBySmallestHeurestic
 {
-	stack<State> avaliableStates;
-	avaliableStates.push(initial);
+    bool operator() (State const &a, State const &b) { return a.heauristic < b.heauristic; }
+};*/
+
+//check if puzzle is even possible
+bool checkPossible(vector<vector<int > > p)
+{
+	//put 2d vector into just 1 vector
+	vector<int> straight;
+	for (unsigned int i = 0; i < 3; ++i)
+	{
+		for (unsigned int j = 0; j < 3; ++j)
+		{
+			straight.push_back(p[i][j]);
+		}
+	}
+	//compare every element with the elements in front, to check for inversions
+	int numbOfInversions = 0;
+	for (int i = 0; i < straight.size(); ++i)
+	{
+		for (unsigned int j = i + 1; j < straight.size(); ++j)
+		{
+			if (straight[i] != 9 && straight[j] != 9 &&
+				straight[j] > straight[i]) 
+			{
+				numbOfInversions++;
+			}
+		}
+	}
+	cout << "Numb of inversions: " << numbOfInversions << endl;
+	//if inversions are even, puzzle is solvable
+	if (numbOfInversions % 2 == 0) return true;
+	return false;
+}
+
+//uniform cost search. returns true if success, returns false if impossible
+bool uniformCostSearch(State initial)
+{
+	//check if initial state is goal
+	if (checkGoalState(initial.puzzle)) return true;
+	//check if puzzle is even possible
+	if (!checkPossible(initial.puzzle)) return false;
 	
-	//check this to see which states have already been traversed
-	vector<State> doneStates;
+	//push all valid states. push initial state. pop queue to check
+	queue<State> avaliableStates;
+	avaliableStates.push(initial);
 	
 	while (!avaliableStates.empty())
 	{
-		State checking = avaliableStates.top();
+		//check this state and see what operations are possible
+		State checking = avaliableStates.front();
+		avaliableStates.pop();
 		
-		int temp;
-		//check operation moving 9 down
-		if (checking.blank.x != 2)
+		cout << "Currently checking: " << endl;
+		displayPuzzle(checking.puzzle);
+		
+		//check operation moving 9 left
+		if (checking.blank.y != 0)
 		{
-			State next = avaliableStates.top();
+			State next = checking;
 			
 			//swap elements
-			next.puzzle[next.blank.x][next.blank.y] = next.puzzle[next.blank.x + 1][next.blank.y];
-			next.blank.x++;
+			next.swap(next.blank.x, next.blank.y, next.blank.x, next.blank.y - 1);
+			next.blank.y--;
 			
-			//only add state if it has not been searched before
-			if (checkStates(doneStates, next))
-			{
-				avaliableStates.push(next);
-				doneStates.push_back(next);
-			}
-		}
-		//check operation moving 9 right
-		if (checking.blank.y != 2)
-		{
-			State next = avaliableStates.top();
-			
-			//swap elements
-			next.puzzle[next.blank.x][next.blank.y] = next.puzzle[next.blank.x][next.blank.y + 1];
-			next.blank.y++;
-			
-			//only add state if it has not been searched before
-			if (checkStates(doneStates, next))
-			{
-				avaliableStates.push(next);
-				doneStates.push_back(next);
-			}
+			//cout << "move 9 left: " << endl;
+			//displayPuzzle(next.puzzle);
+
+			if (checkGoalState(next.puzzle)) return true;
+			avaliableStates.push(next);
 		}
 		//check operation moving 9 up
 		if (checking.blank.x != 0)
 		{
-			State next = avaliableStates.top();
+			State next = checking;
 			
 			//swap elements
-			next.puzzle[next.blank.x][next.blank.y] = next.puzzle[next.blank.x - 1][next.blank.y];
+			next.swap(next.blank.x, next.blank.y, next.blank.x - 1, next.blank.y);
 			next.blank.x--;
+	
+			//cout << "move 9 up: " << endl;
+			//displayPuzzle(next.puzzle);
 			
-			//only add state if it has not been searched before
-			if (checkStates(doneStates, next))
-			{
-				avaliableStates.push(next);
-				doneStates.push_back(next);
-			}
+			if (checkGoalState(next.puzzle)) return true;
+			avaliableStates.push(next);
+			
 		}
-		//check operation moving 9 left
-		if (checking.blank.y != 0)
+		//check operation moving 9 right
+		if (checking.blank.y != 2)
 		{
-			State next = avaliableStates.top();
+			State next = checking;
 			
 			//swap elements
-			next.puzzle[next.blank.x][next.blank.y] = next.puzzle[next.blank.x][next.blank.y - 1];
-			next.blank.y--;
+			next.swap(next.blank.x, next.blank.y, next.blank.x, next.blank.y + 1);
+			next.blank.y++;
 			
-			//only add state if it has not been searched before
-			if (checkStates(doneStates, next))
-			{
-				avaliableStates.push(next);
-				doneStates.push_back(next);
-			}
+			//cout << "move 9 right: " << endl;
+			//displayPuzzle(next.puzzle);
+			
+			if (checkGoalState(next.puzzle)) return true;
+			avaliableStates.push(next);
+			
 		}
-		avaliableStates.pop();
+		//check operation moving 9 down
+		if (checking.blank.x != 2)
+		{
+			State next = checking;
+			
+			//swap elements
+			next.swap(next.blank.x, next.blank.y, next.blank.x + 1, next.blank.y);
+			next.blank.x++;
+
+			//cout << "move 9 down: " << endl;
+			//displayPuzzle(next.puzzle);
+
+			if (checkGoalState(next.puzzle)) return true;
+			avaliableStates.push(next);
+			
+		}
 	}
+	return false;
 }
 
 int main()
@@ -240,11 +320,15 @@ int main()
 	if (puzzletype == 1) //default puzzle
 	{
 		initial.puzzle = puzzledefault;
-		initial.blank.y = 1;
+		initial.blank.x = 0;
 		initial.blank.y = 1;
 		initial.depth = 0;
 		
-		aStarAlgorithm(initial);
+		displayPuzzle(initial.puzzle);
+		displayPuzzle(puzzlegoal);
+		
+		if (uniformCostSearch(initial)) cout << "Puzzle solved." << endl;
+		else cout << "Puzzle is impossible to solve." << endl;
 	}
 	else //custom puzzle
 	{
@@ -269,13 +353,7 @@ int main()
 
 		initial.puzzle = puzzlecustom;
 		initial.depth = 0;
-		aStarAlgorithm(initial);
-		
-		//cout << "element: " << puzzledefault[0][0] << endl;
-		//displayCustomPuzzle(puzzledefault);
-		//displayCustomPuzzle(puzzlecustom);
-		//displayCustomPuzzle(puzzlegoal);
-		
-		//cout << "curr h: " << getHeuristic(puzzlecustom, puzzlegoal) << endl;
+		uniformCostSearch(initial);
+	
 	}
 }

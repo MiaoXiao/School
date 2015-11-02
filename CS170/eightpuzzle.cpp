@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 #include <stdlib.h>
 #include <stack>
 #include <queue>
@@ -24,10 +25,17 @@ struct Index
 //holds data about one state, and its children
 struct State
 {
+	State() 
+	{
+		parent = -1;
+		pos = 0;
+		message = "Initital state.";
+	}
 	//current puzzle
 	vector<vector<int> > puzzle;
 	//index of 9
 	Index blank;
+	
 	//g(n)
 	int depth;
 	//f(n)
@@ -35,7 +43,12 @@ struct State
 	//total hearuestic
 	int total;
 	
-	//parent state
+	//movement message
+	string message;
+	
+	//this state's position in tree
+	int pos;
+	//parent of next state (for calculating answer path)
 	int parent;
 	
 	//swap two elements in puzzle
@@ -226,19 +239,47 @@ bool uniformCostSearch(State initial)
 	//check if puzzle is even possible
 	if (!checkPossible(initial.puzzle)) return false;
 	
+	//tree
+	Tree tree;
+	//push first state
+	tree.list.push_back(initial);
+	
 	//push all valid states. push initial state. pop queue to check
 	queue<State> avaliableStates;
 	avaliableStates.push(initial);
 	
+	//set to true when puzzle is solved
+	bool puzzleSolved = false;
+	
 	while (!avaliableStates.empty())
 	{
+		//recurse back up the tree when puzzle is solved
+		if (puzzleSolved)
+		{
+			//put reversed path in stack, to correct the order
+			int nextIndex = tree.list.size() - 1;
+			stack<State> temp;
+			while (nextIndex != -1)
+			{
+				temp.push(tree.list[nextIndex]);
+				nextIndex = tree.list[nextIndex].parent;
+			}
+			//displayc correct path to puzzle
+			for (unsigned int i = 1; !temp.empty(); ++i)
+			{
+				cout << i << ": " << endl;
+				cout << temp.top().message << endl;
+				displayPuzzle(temp.top().puzzle);
+				temp.pop();
+			}
+			return true;
+		}
 		//check this state and see what operations are possible
 		State checking = avaliableStates.front();
 		avaliableStates.pop();
 		
-		cout << "Currently checking: " << endl;
-		displayPuzzle(checking.puzzle);
-		
+		//cout << "Currently checking: " << endl;
+		//displayPuzzle(checking.puzzle);
 		//check operation moving 9 left
 		if (checking.blank.y != 0)
 		{
@@ -248,30 +289,33 @@ bool uniformCostSearch(State initial)
 			next.swap(next.blank.x, next.blank.y, next.blank.x, next.blank.y - 1);
 			next.blank.y--;
 			
-			//cout << "move 9 left: " << endl;
-			//displayPuzzle(next.puzzle);
-
-			if (checkGoalState(next.puzzle)) return true;
+			next.message = "Moved blank left.";
+			
+			next.parent = checking.pos;
+			tree.list.push_back(next);
+			next.pos = tree.list.size() - 1;
 			avaliableStates.push(next);
+			if (checkGoalState(next.puzzle)) puzzleSolved = true;
 		}
 		//check operation moving 9 up
-		if (checking.blank.x != 0)
+		if (!puzzleSolved && checking.blank.x != 0)
 		{
 			State next = checking;
 			
 			//swap elements
 			next.swap(next.blank.x, next.blank.y, next.blank.x - 1, next.blank.y);
 			next.blank.x--;
-	
-			//cout << "move 9 up: " << endl;
-			//displayPuzzle(next.puzzle);
 			
-			if (checkGoalState(next.puzzle)) return true;
+			next.message = "Moved blank up.";
+			
+			next.parent = checking.pos;
+			tree.list.push_back(next);
+			next.pos = tree.list.size() - 1;
 			avaliableStates.push(next);
-			
+			if (checkGoalState(next.puzzle)) puzzleSolved = true;
 		}
 		//check operation moving 9 right
-		if (checking.blank.y != 2)
+		if (!puzzleSolved && checking.blank.y != 2)
 		{
 			State next = checking;
 			
@@ -279,28 +323,30 @@ bool uniformCostSearch(State initial)
 			next.swap(next.blank.x, next.blank.y, next.blank.x, next.blank.y + 1);
 			next.blank.y++;
 			
-			//cout << "move 9 right: " << endl;
-			//displayPuzzle(next.puzzle);
+			next.message = "Moved blank right.";
 			
-			if (checkGoalState(next.puzzle)) return true;
+			next.parent = checking.pos;
+			tree.list.push_back(next);
+			next.pos = tree.list.size() - 1;
 			avaliableStates.push(next);
-			
+			if (checkGoalState(next.puzzle)) puzzleSolved = true;
 		}
 		//check operation moving 9 down
-		if (checking.blank.x != 2)
+		if (!puzzleSolved && checking.blank.x != 2)
 		{
 			State next = checking;
 			
 			//swap elements
 			next.swap(next.blank.x, next.blank.y, next.blank.x + 1, next.blank.y);
 			next.blank.x++;
-
-			//cout << "move 9 down: " << endl;
-			//displayPuzzle(next.puzzle);
-
-			if (checkGoalState(next.puzzle)) return true;
-			avaliableStates.push(next);
 			
+			next.message = "Moved blank down.";
+			
+			next.parent = checking.pos;
+			tree.list.push_back(next);
+			next.pos = tree.list.size() - 1;
+			avaliableStates.push(next);
+			if (checkGoalState(next.puzzle)) puzzleSolved = true;
 		}
 	}
 	return false;
@@ -324,8 +370,8 @@ int main()
 		initial.blank.y = 1;
 		initial.depth = 0;
 		
-		displayPuzzle(initial.puzzle);
-		displayPuzzle(puzzlegoal);
+		//displayPuzzle(initial.puzzle);
+		//displayPuzzle(puzzlegoal);
 		
 		if (uniformCostSearch(initial)) cout << "Puzzle solved." << endl;
 		else cout << "Puzzle is impossible to solve." << endl;

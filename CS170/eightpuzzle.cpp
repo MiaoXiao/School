@@ -150,9 +150,14 @@ void findCorrectPos(int n, int &ifinal, int &jfinal)
 	}
 }
 
-//returns estimated cost of moving piece to correct spot using manhatten distance
-int manhattenHeuristic(vector<vector<int> > currentstate)
+//specifies what heuristic to use
+enum HeuristicType{NONE, MISPLACED, MANHATTEN};
+
+//returns estimated cost of moving piece to correct spot
+//type specifies what heuristic to use if any
+int getHeuristic(vector<vector<int> > currentstate, int type)
 {
+	if (type == NONE) return 0;
 	int total = 0;
 	int ifinal = 0;
 	int jfinal = 0;
@@ -163,8 +168,12 @@ int manhattenHeuristic(vector<vector<int> > currentstate)
 			//if spots do not match, find manhatten distance
 			if (currentstate[i][j] != 9 && currentstate[i][j] != puzzlegoal[i][j])
 			{
-				findCorrectPos(currentstate[i][j], ifinal, jfinal);
-				total += abs(i - ifinal) + abs(j - jfinal);
+				if (type == MISPLACED) total++;
+				else if (type == MANHATTEN)
+				{
+					findCorrectPos(currentstate[i][j], ifinal, jfinal);
+					total += abs(i - ifinal) + abs(j - jfinal);
+				}
 			}
 		}
 	}
@@ -232,7 +241,7 @@ bool checkPossible(vector<vector<int > > p)
 }
 
 //uniform cost search. returns true if success, returns false if impossible
-bool uniformCostSearch(State initial)
+bool generalSearch(State initial)
 {
 	//check if initial state is goal
 	if (checkGoalState(initial.puzzle)) return true;
@@ -359,7 +368,7 @@ int main()
 	initVectors();
 	
 	int puzzletype;
-	cout << "Welcome to Rica's soon to be A+ eight-puzzle solver." << endl;
+	cout << "Welcome to Rica's eight-puzzle solver." << endl;
 	cout << "Type '1' to use default puzzle, type anything else to use custom puzzle." << endl;
 	cin >> puzzletype;
 
@@ -369,12 +378,6 @@ int main()
 		initial.blank.x = 0;
 		initial.blank.y = 1;
 		initial.depth = 0;
-		
-		//displayPuzzle(initial.puzzle);
-		//displayPuzzle(puzzlegoal);
-		
-		if (uniformCostSearch(initial)) cout << "Puzzle solved." << endl;
-		else cout << "Puzzle is impossible to solve." << endl;
 	}
 	else //custom puzzle
 	{
@@ -399,7 +402,8 @@ int main()
 
 		initial.puzzle = puzzlecustom;
 		initial.depth = 0;
-		uniformCostSearch(initial);
 	
 	}
+	if (generalSearch(initial)) cout << "Puzzle solved." << endl;
+	else cout << "Puzzle is impossible to solve." << endl;
 }

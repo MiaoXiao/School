@@ -11,21 +11,21 @@ using namespace std;
 
 //indexes of blank space in default puzzle
 #define BLANKX 0
-#define BLANKY 1
+#define BLANKY 2
 
 //values of default puzzle
 //first row
 #define FIRST 4
-#define SECOND 9
-#define THIRD 3
+#define SECOND 3
+#define THIRD 9
 //second row
 #define FOURTH 7
-#define FIFTH 1 
-#define SIXTH 5
+#define FIFTH 1
+#define SIXTH 6
 //third row
 #define SEVENTH 8
-#define EIGHTH 2
-#define BLANK 6
+#define EIGHTH 5
+#define NINTH 2
 
 //specifies what heuristic to use
 enum HeuristicType{NONE, MISPLACED, MANHATTEN};
@@ -137,7 +137,7 @@ void initVectors()
 	//third row
 	puzzledefaultvalues.push_back(SEVENTH);
 	puzzledefaultvalues.push_back(EIGHTH);
-	puzzledefaultvalues.push_back(BLANK);
+	puzzledefaultvalues.push_back(NINTH);
 	
 	int spot = 0;
 	int value = 1;

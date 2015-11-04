@@ -1,3 +1,6 @@
+//references:
+//http://www.aiai.ed.ac.uk/~gwickler/eightpuzzle-uninf.html
+//http://ldc.usb.ve/~gpalma/ci2693sd08/puzzleFactible.txt
 #include <iostream>
 #include <string>
 #include <stdlib.h>
@@ -416,6 +419,10 @@ bool generalSearch(State initial, int h)
 			return true;
 		}
 	}
+	cout << "Total Nodes Expanded: " << totalNodesExpanded << endl;
+	cout << "Max Nodes in Queue: " << maxNodesInQueue << endl;
+	cout << "Depth of Goal: " << goalDepth << endl;
+	cout << "All nodes exploded. Puzzle is not solvable." << endl;
 	return false;
 }
 

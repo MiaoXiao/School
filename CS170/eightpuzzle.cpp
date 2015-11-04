@@ -11,14 +11,15 @@ using namespace std;
 #define BLANKY 1
 
 //values of default puzzle
+//first row
 #define FIRST 4
 #define SECOND 9
 #define THIRD 3
-
+//second row
 #define FOURTH 7
 #define FIFTH 1 
 #define SIXTH 5
-
+//third row
 #define SEVENTH 8
 #define EIGHTH 2
 #define BLANK 6
@@ -79,6 +80,7 @@ struct State
 	}
 };
 
+//for priority queue
 struct Compare
 {
 	bool operator()(const State& lhs, const State& rhs)
@@ -145,12 +147,10 @@ void initVectors()
 			puzzledefault[spot].push_back(puzzledefaultvalues[value - 1]);
 			puzzlegoal[spot].push_back(value);
 			value++;
+			puzzlecustom[i].push_back(0);
 		}
 		spot++;
 	}
-	//displayPuzzle(puzzledefault);
-	//displayPuzzle(puzzlecustom);
-	//displayPuzzle(puzzlegoal);
 }
 
 //checks to see if goal state is reached
@@ -183,6 +183,7 @@ void displayAnswer(Tree tree)
 }
 
 //find correct indexes of where number n piece should be
+//replaces ifinal and jfinal with the correct index
 void findCorrectPos(int n, int &ifinal, int &jfinal)
 {
 	for (unsigned int i = 0; i < 3; ++i)
@@ -232,11 +233,6 @@ bool checkStates(vector<State> list, vector<vector<int> > check)
 {
 	for (unsigned int i = 0; i < list.size(); ++i)
 	{
-		/*
-		cout << "comparing: " << endl;
-		displayPuzzle(list[i].puzzle);
-		cout << "to:" << endl;
-		displayPuzzle(check); */
 		for (unsigned int j = 0; j < 3; ++j)
 		{
 			for (unsigned int k = 0; k < 3; ++k)
@@ -257,8 +253,6 @@ void assignNewOperator(const State checking, State &next, Tree &tree, priority_q
 
 	//increase depth
 	next.depth++;
-	//if (next.depth == 1 || next.depth == 2) cout << "depth: " << next.depth << endl;
-	//cout << "heu: " << next.heuristic << endl;
 	//assign message
 	next.message = message;
 	//assign parent
@@ -321,16 +315,17 @@ bool generalSearch(State initial, int h)
 	//check if puzzle is even possible
 	if (!checkInversions(initial.puzzle)) return false;
 	
-	//push all valid states. push initial state.
+	//container for all valid states to check. push initial state.
 	priority_queue<State, vector<State>, Compare> avaliableStates;
 	avaliableStates.push(initial);
 	
 	//set to true when puzzle is solved
 	bool puzzleSolved = false;
 	
+	//start loop
 	while (!avaliableStates.empty())
-	{		
-		//check this state and see what operations are possible
+	{
+		//pop the node to check
 		State checking = avaliableStates.top();
 		avaliableStates.pop();
 		
@@ -444,7 +439,7 @@ int main()
 		initial.puzzle = puzzledefault;
 		initial.blank.x = BLANKX;
 		initial.blank.y = BLANKY;
-		initial.depth = 0;
+		
 	}
 	else //custom puzzle
 	{
@@ -467,8 +462,8 @@ int main()
 			}
 		}
 		initial.puzzle = puzzlecustom;
-		initial.depth = 0;
 	}
+	initial.depth = 0;
 	
 	int algorithm;
 	cout << "Which algorithm to use?" << endl;

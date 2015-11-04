@@ -10,25 +10,28 @@
 using namespace std;
 
 //indexes of blank space in default puzzle
-#define BLANKX 0
-#define BLANKY 2
+#define BLANKX 2
+#define BLANKY 1
 
 //values of default puzzle
 //first row
-#define FIRST 4
+#define FIRST 5
 #define SECOND 3
-#define THIRD 9
+#define THIRD 6
 //second row
-#define FOURTH 7
-#define FIFTH 1
-#define SIXTH 6
+#define FOURTH 2
+#define FIFTH 7
+#define SIXTH 1
 //third row
-#define SEVENTH 8
-#define EIGHTH 5
-#define NINTH 2
+#define SEVENTH 4
+#define EIGHTH 9
+#define NINTH 8
 
 //specifies what heuristic to use
 enum HeuristicType{NONE, MISPLACED, MANHATTEN};
+
+//specified a direction that tile is moving
+enum CurrentDirection {LEFT, UP, RIGHT, DOWN};
 
 //store default pussle
 vector<vector <int> > puzzledefault;
@@ -50,7 +53,9 @@ struct State
 {
 	State() 
 	{
-		depth = 0;
+		lastblank.x = -1;
+		lastblank.y = -1;
+		depth = 1;
 		heuristic = 0;
 		parent = -1;
 		pos = 0;
@@ -58,6 +63,8 @@ struct State
 	}
 	//current puzzle
 	vector<vector<int> > puzzle;
+	//index of last 9
+	Index lastblank;
 	//index of 9
 	Index blank;
 	
@@ -167,6 +174,8 @@ bool checkGoalState(vector<vector<int> > s)
 //display answer
 void displayAnswer(Tree tree)
 {
+	cout << "=================================================" << endl;
+	cout << "FULL ANSWER PATH" << endl;
 	//put reversed path in stack, to correct the order
 	int nextIndex = tree.list.size() - 1;
 	stack<State> temp;
@@ -297,6 +306,28 @@ bool checkInversions(vector<vector<int > > p)
 	return false;
 }
 
+//check if this is will move the tile back to the previously checked state
+//returns true if this was not the last state
+bool checkLastOperation(int lastx, int lasty, int currx, int curry, int direction)
+{
+	switch(direction)
+	{
+		case LEFT:
+			if (curry - lasty == 1) return false;
+			break;
+		case UP:
+			if (currx - lastx == 1) return false;
+			break;
+		case RIGHT:
+			if (lasty - curry == 1) return false;
+			break;
+		case DOWN:
+			if (lastx - currx == 1) return false;
+			break;
+	}
+	return true;
+}
+
 //uniform cost search. returns true if success, returns false if impossible
 //specify heuristic type
 bool generalSearch(State initial, int h)
@@ -305,8 +336,11 @@ bool generalSearch(State initial, int h)
 	int totalNodesExpanded = 0;
 	//max depth of tree
 	int maxNodesInQueue = 0;
-	//depth of foal node
-	int goalDepth = 0;
+	//depth of goal node
+	int goalDepth = 1;
+	
+	//set to true when puzzle is solved
+	bool puzzleSolved = false;
 	
 	//tree
 	Tree tree;
@@ -314,16 +348,20 @@ bool generalSearch(State initial, int h)
 	tree.list.push_back(initial);
 	
 	//check if initial state is goal
-	if (checkGoalState(initial.puzzle)) return true;
-	//check if puzzle is even possible
-	if (!checkInversions(initial.puzzle)) return false;
+	if (checkGoalState(initial.puzzle)) puzzleSolved = true;
 	
+	//check if puzzle is even possible
+	if (!checkInversions(initial.puzzle))
+	{
+		cout << "Puzzle not solvable." << endl;
+		return false;
+	}
 	//container for all valid states to check. push initial state.
 	priority_queue<State, vector<State>, Compare> avaliableStates;
 	avaliableStates.push(initial);
 	
-	//set to true when puzzle is solved
-	bool puzzleSolved = false;
+	//last index 
+	Index last;
 	
 	//start loop
 	while (!avaliableStates.empty())
@@ -331,6 +369,7 @@ bool generalSearch(State initial, int h)
 		//pop the node to check
 		State checking = avaliableStates.top();
 		avaliableStates.pop();
+		totalNodesExpanded++;
 		
 		cout << "Expanding the next best node: " << endl;
 		cout << "Depth + Heuristic = Total" << endl;
@@ -338,10 +377,12 @@ bool generalSearch(State initial, int h)
 		displayPuzzle(checking.puzzle);
 		
 		//check operation moving 9 left
-		if (checking.blank.y != 0)
+		if (!puzzleSolved && checking.blank.y != 0 && 
+			checkLastOperation(checking.lastblank.x, checking.lastblank.y, checking.blank.x, checking.blank.y, LEFT))
 		{
 			State next = checking;
-			totalNodesExpanded++;
+			next.lastblank.x = next.blank.x;
+			next.lastblank.y = next.blank.y;
 			
 			//swap elements
 			next.swap(next.blank.x, next.blank.y, next.blank.x, next.blank.y - 1);
@@ -355,10 +396,12 @@ bool generalSearch(State initial, int h)
 			}
 		}
 		//check operation moving 9 up
-		if (!puzzleSolved && checking.blank.x != 0)
+		if (!puzzleSolved && checking.blank.x != 0 && 
+			checkLastOperation(checking.lastblank.x, checking.lastblank.y, checking.blank.x, checking.blank.y, UP))
 		{
 			State next = checking;
-			totalNodesExpanded++;
+			next.lastblank.x = next.blank.x;
+			next.lastblank.y = next.blank.y;
 			
 			//swap elements
 			next.swap(next.blank.x, next.blank.y, next.blank.x - 1, next.blank.y);
@@ -372,10 +415,12 @@ bool generalSearch(State initial, int h)
 			}
 		}
 		//check operation moving 9 right
-		if (!puzzleSolved && checking.blank.y != 2)
+		if (!puzzleSolved && checking.blank.y != 2 && 
+			checkLastOperation(checking.lastblank.x, checking.lastblank.y, checking.blank.x, checking.blank.y, RIGHT))
 		{
 			State next = checking;
-			totalNodesExpanded++;
+			next.lastblank.x = next.blank.x;
+			next.lastblank.y = next.blank.y;
 			
 			//swap elements
 			next.swap(next.blank.x, next.blank.y, next.blank.x, next.blank.y + 1);
@@ -389,10 +434,12 @@ bool generalSearch(State initial, int h)
 			}
 		}
 		//check operation moving 9 down
-		if (!puzzleSolved && checking.blank.x != 2)
+		if (!puzzleSolved && checking.blank.x != 2 && 
+			checkLastOperation(checking.lastblank.x, checking.lastblank.y, checking.blank.x, checking.blank.y, DOWN))
 		{
 			State next = checking;
-			totalNodesExpanded++;
+			next.lastblank.x = next.blank.x;
+			next.lastblank.y = next.blank.y;
 			
 			//swap elements
 			next.swap(next.blank.x, next.blank.y, next.blank.x + 1, next.blank.y);
@@ -416,13 +463,14 @@ bool generalSearch(State initial, int h)
 			cout << "Total Nodes Expanded: " << totalNodesExpanded << endl;
 			cout << "Max Nodes in Queue: " << maxNodesInQueue << endl;
 			cout << "Depth of Goal: " << goalDepth << endl;
+			cout << "Puzzle completed!" << endl;
 			return true;
 		}
 	}
 	cout << "Total Nodes Expanded: " << totalNodesExpanded << endl;
 	cout << "Max Nodes in Queue: " << maxNodesInQueue << endl;
 	cout << "Depth of Goal: " << goalDepth << endl;
-	cout << "All nodes exploded. Puzzle is not solvable." << endl;
+	cout << "All nodes expanded. Puzzle is not solvable." << endl;
 	return false;
 }
 
@@ -470,7 +518,8 @@ int main()
 		}
 		initial.puzzle = puzzlecustom;
 	}
-	initial.depth = 0;
+	
+	initial.depth = 1;
 	
 	int algorithm;
 	cout << "Which algorithm to use?" << endl;
@@ -484,6 +533,5 @@ int main()
 		cout << "Not a valid algorithm." <<endl;
 		exit(1);
 	}
-	
 	generalSearch(initial, algorithm);
 }

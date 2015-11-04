@@ -4,8 +4,24 @@
 #include <stack>
 #include <queue>
 #include <vector>
-
 using namespace std;
+
+//indexes of blank space in default puzzle
+#define BLANKX 0
+#define BLANKY 1
+
+//values of default puzzle
+#define FIRST 4
+#define SECOND 9
+#define THIRD 3
+
+#define FOURTH 7
+#define FIFTH 1 
+#define SIXTH 5
+
+#define SEVENTH 8
+#define EIGHTH 2
+#define BLANK 6
 
 //specifies what heuristic to use
 enum HeuristicType{NONE, MISPLACED, MANHATTEN};
@@ -106,17 +122,17 @@ void initVectors()
 	}
 	
 	//first row
-	puzzledefaultvalues.push_back(4);
-	puzzledefaultvalues.push_back(9);
-	puzzledefaultvalues.push_back(3);
+	puzzledefaultvalues.push_back(FIRST);
+	puzzledefaultvalues.push_back(SECOND);
+	puzzledefaultvalues.push_back(THIRD);
 	//second row
-	puzzledefaultvalues.push_back(7);
-	puzzledefaultvalues.push_back(1);
-	puzzledefaultvalues.push_back(5);
+	puzzledefaultvalues.push_back(FOURTH);
+	puzzledefaultvalues.push_back(FIFTH);
+	puzzledefaultvalues.push_back(SIXTH);
 	//third row
-	puzzledefaultvalues.push_back(8);
-	puzzledefaultvalues.push_back(2);
-	puzzledefaultvalues.push_back(6);
+	puzzledefaultvalues.push_back(SEVENTH);
+	puzzledefaultvalues.push_back(EIGHTH);
+	puzzledefaultvalues.push_back(BLANK);
 	
 	int spot = 0;
 	int value = 1;
@@ -305,8 +321,7 @@ bool generalSearch(State initial, int h)
 	//check if puzzle is even possible
 	if (!checkInversions(initial.puzzle)) return false;
 	
-	//push all valid states. push initial state. pop queue to check
-	//queue<State> avaliableStates;
+	//push all valid states. push initial state.
 	priority_queue<State, vector<State>, Compare> avaliableStates;
 	avaliableStates.push(initial);
 	
@@ -319,7 +334,7 @@ bool generalSearch(State initial, int h)
 		State checking = avaliableStates.top();
 		avaliableStates.pop();
 		
-		cout << "Expanding the next best state: " << endl;
+		cout << "Expanding the next best node: " << endl;
 		cout << "Depth + Heuristic = Total" << endl;
 		cout << checking.depth << " + " << checking.heuristic  << " = " << checking.depth + checking.heuristic << endl << endl;
 		displayPuzzle(checking.puzzle);
@@ -392,10 +407,11 @@ bool generalSearch(State initial, int h)
 				goalDepth = next.depth;
 			}
 		}
+		
 		//check max size of queue
 		if (avaliableStates.size() > maxNodesInQueue) maxNodesInQueue = avaliableStates.size();
 		
-		//when puzzle is solved, display path
+		//when puzzle is solved, display answer path
 		if (puzzleSolved)
 		{
 			displayAnswer(tree);
@@ -423,14 +439,11 @@ int main()
 	cin >> puzzletype;
 	cout << endl;
 	
-	//out << "Which algorithm to use?" << endl;
-	//cout << "1: Uniform Cost Search"
-	
 	if (puzzletype == 1) //default puzzle
 	{
 		initial.puzzle = puzzledefault;
-		initial.blank.x = 0;
-		initial.blank.y = 1;
+		initial.blank.x = BLANKX;
+		initial.blank.y = BLANKY;
 		initial.depth = 0;
 	}
 	else //custom puzzle
@@ -453,11 +466,22 @@ int main()
 				puzzlecustom[i][j] = spot;
 			}
 		}
-
 		initial.puzzle = puzzlecustom;
 		initial.depth = 0;
-	
 	}
-	if (generalSearch(initial, NONE)) cout << "Puzzle solved." << endl;
-	else cout << "Puzzle is impossible to solve." << endl;
+	
+	int algorithm;
+	cout << "Which algorithm to use?" << endl;
+	cout << "0: Uniform Cost Search " << endl;
+	cout << "1: A* with Misplaced Tile Heuristic " << endl;
+	cout << "2: A* with Misplaced Distance Heuristic" << endl;
+	cin >> algorithm;
+	
+	if (algorithm < 0 || algorithm > 2)
+	{
+		cout << "Not a valid algorithm." <<endl;
+		exit(1);
+	}
+	
+	generalSearch(initial, algorithm);
 }

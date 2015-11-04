@@ -7,6 +7,9 @@
 
 using namespace std;
 
+//specifies what heuristic to use
+enum HeuristicType{NONE, MISPLACED, MANHATTEN};
+
 //store default pussle
 vector<vector <int> > puzzledefault;
 vector<int> puzzledefaultvalues;
@@ -22,11 +25,13 @@ struct Index
 		unsigned int y;
 };
 
-//holds data about one state, and its children
+//holds data about one puzzle, and its parent in a tree
 struct State
 {
 	State() 
 	{
+		depth = 0;
+		heuristic = 0;
 		parent = -1;
 		pos = 0;
 		message = "Initital state.";
@@ -39,9 +44,7 @@ struct State
 	//g(n)
 	int depth;
 	//f(n)
-	int manhatten;
-	//total hearuestic
-	int total;
+	int heuristic;
 	
 	//movement message
 	string message;
@@ -57,6 +60,14 @@ struct State
 		int temp = puzzle[x1][y1];
 		puzzle[x1][y1] = puzzle[x2][y2];
 		puzzle[x2][y2] = temp;
+	}
+};
+
+struct Compare
+{
+	bool operator()(const State& lhs, const State& rhs)
+	{
+		return (lhs.depth + lhs.heuristic) > (rhs.depth + rhs.heuristic);
 	}
 };
 
@@ -95,16 +106,16 @@ void initVectors()
 	}
 	
 	//first row
-	puzzledefaultvalues.push_back(1);
+	puzzledefaultvalues.push_back(4);
 	puzzledefaultvalues.push_back(9);
 	puzzledefaultvalues.push_back(3);
 	//second row
-	puzzledefaultvalues.push_back(4);
-	puzzledefaultvalues.push_back(2);
+	puzzledefaultvalues.push_back(7);
+	puzzledefaultvalues.push_back(1);
 	puzzledefaultvalues.push_back(5);
 	//third row
-	puzzledefaultvalues.push_back(7);
 	puzzledefaultvalues.push_back(8);
+	puzzledefaultvalues.push_back(2);
 	puzzledefaultvalues.push_back(6);
 	
 	int spot = 0;
@@ -129,7 +140,30 @@ void initVectors()
 //checks to see if goal state is reached
 bool checkGoalState(vector<vector<int> > s)
 {
-	return (s == puzzlegoal);
+	//this is the goal state!
+	if (s == puzzlegoal) return true;
+	return false;
+}
+
+//display answer
+void displayAnswer(Tree tree)
+{
+	//put reversed path in stack, to correct the order
+	int nextIndex = tree.list.size() - 1;
+	stack<State> temp;
+	while (nextIndex != -1)
+	{
+		temp.push(tree.list[nextIndex]);
+		nextIndex = tree.list[nextIndex].parent;
+	}
+	//display correct path to puzzle
+	for (unsigned int i = 1; !temp.empty(); ++i)
+	{
+		cout << i << ": " << endl;
+		cout << temp.top().message << endl;
+		displayPuzzle(temp.top().puzzle);
+		temp.pop();
+	}
 }
 
 //find correct indexes of where number n piece should be
@@ -150,9 +184,6 @@ void findCorrectPos(int n, int &ifinal, int &jfinal)
 	}
 }
 
-//specifies what heuristic to use
-enum HeuristicType{NONE, MISPLACED, MANHATTEN};
-
 //returns estimated cost of moving piece to correct spot
 //type specifies what heuristic to use if any
 int getHeuristic(vector<vector<int> > currentstate, int type)
@@ -169,7 +200,7 @@ int getHeuristic(vector<vector<int> > currentstate, int type)
 			if (currentstate[i][j] != 9 && currentstate[i][j] != puzzlegoal[i][j])
 			{
 				if (type == MISPLACED) total++;
-				else if (type == MANHATTEN)
+				else if (type == MANHATTEN) 
 				{
 					findCorrectPos(currentstate[i][j], ifinal, jfinal);
 					total += abs(i - ifinal) + abs(j - jfinal);
@@ -202,15 +233,28 @@ bool checkStates(vector<State> list, vector<vector<int> > check)
 	return false;
 }
 
-/*
-//comparotor for priority queue
-struct OrderBySmallestHeurestic
+//assign operator's new parent, current pos in list, and message
+void assignNewOperator(const State checking, State &next, Tree &tree, priority_queue<State, vector<State>, Compare> &avaliableStates, string message, int h)
 {
-    bool operator() (State const &a, State const &b) { return a.heauristic < b.heauristic; }
-};*/
+	//assign heurstic if not uniform
+	if (h != NONE) next.heuristic = getHeuristic(next.puzzle, h);
+
+	//increase depth
+	next.depth++;
+	//if (next.depth == 1 || next.depth == 2) cout << "depth: " << next.depth << endl;
+	//cout << "heu: " << next.heuristic << endl;
+	//assign message
+	next.message = message;
+	//assign parent
+	next.parent = checking.pos;
+	tree.list.push_back(next);
+	//assign new pos
+	next.pos = tree.list.size() - 1;
+	avaliableStates.push(next);
+}
 
 //check if puzzle is even possible
-bool checkPossible(vector<vector<int > > p)
+bool checkInversions(vector<vector<int > > p)
 {
 	//put 2d vector into just 1 vector
 	vector<int> straight;
@@ -234,128 +278,131 @@ bool checkPossible(vector<vector<int > > p)
 			}
 		}
 	}
-	cout << "Numb of inversions: " << numbOfInversions << endl;
+	//cout << "Numb of inversions: " << numbOfInversions << endl;
 	//if inversions are even, puzzle is solvable
 	if (numbOfInversions % 2 == 0) return true;
 	return false;
 }
 
 //uniform cost search. returns true if success, returns false if impossible
-bool generalSearch(State initial)
+//specify heuristic type
+bool generalSearch(State initial, int h)
 {
-	//check if initial state is goal
-	if (checkGoalState(initial.puzzle)) return true;
-	//check if puzzle is even possible
-	if (!checkPossible(initial.puzzle)) return false;
+	//total nodes expanded
+	int totalNodesExpanded = 0;
+	//max depth of tree
+	int maxNodesInQueue = 0;
+	//depth of foal node
+	int goalDepth = 0;
 	
 	//tree
 	Tree tree;
 	//push first state
 	tree.list.push_back(initial);
 	
+	//check if initial state is goal
+	if (checkGoalState(initial.puzzle)) return true;
+	//check if puzzle is even possible
+	if (!checkInversions(initial.puzzle)) return false;
+	
 	//push all valid states. push initial state. pop queue to check
-	queue<State> avaliableStates;
+	//queue<State> avaliableStates;
+	priority_queue<State, vector<State>, Compare> avaliableStates;
 	avaliableStates.push(initial);
 	
 	//set to true when puzzle is solved
 	bool puzzleSolved = false;
 	
 	while (!avaliableStates.empty())
-	{
-		//recurse back up the tree when puzzle is solved
-		if (puzzleSolved)
-		{
-			//put reversed path in stack, to correct the order
-			int nextIndex = tree.list.size() - 1;
-			stack<State> temp;
-			while (nextIndex != -1)
-			{
-				temp.push(tree.list[nextIndex]);
-				nextIndex = tree.list[nextIndex].parent;
-			}
-			//displayc correct path to puzzle
-			for (unsigned int i = 1; !temp.empty(); ++i)
-			{
-				cout << i << ": " << endl;
-				cout << temp.top().message << endl;
-				displayPuzzle(temp.top().puzzle);
-				temp.pop();
-			}
-			return true;
-		}
+	{		
 		//check this state and see what operations are possible
-		State checking = avaliableStates.front();
+		State checking = avaliableStates.top();
 		avaliableStates.pop();
 		
-		//cout << "Currently checking: " << endl;
-		//displayPuzzle(checking.puzzle);
+		cout << "Expanding the next best state: " << endl;
+		cout << "Depth + Heuristic = Total" << endl;
+		cout << checking.depth << " + " << checking.heuristic  << " = " << checking.depth + checking.heuristic << endl << endl;
+		displayPuzzle(checking.puzzle);
+		
 		//check operation moving 9 left
 		if (checking.blank.y != 0)
 		{
 			State next = checking;
+			totalNodesExpanded++;
 			
 			//swap elements
 			next.swap(next.blank.x, next.blank.y, next.blank.x, next.blank.y - 1);
 			next.blank.y--;
 			
-			next.message = "Moved blank left.";
-			
-			next.parent = checking.pos;
-			tree.list.push_back(next);
-			next.pos = tree.list.size() - 1;
-			avaliableStates.push(next);
-			if (checkGoalState(next.puzzle)) puzzleSolved = true;
+			assignNewOperator(checking, next, tree, avaliableStates, "Moved blank left.", h);
+			if (checkGoalState(next.puzzle))
+			{
+				puzzleSolved = true;
+				goalDepth = next.depth;
+			}
 		}
 		//check operation moving 9 up
 		if (!puzzleSolved && checking.blank.x != 0)
 		{
 			State next = checking;
+			totalNodesExpanded++;
 			
 			//swap elements
 			next.swap(next.blank.x, next.blank.y, next.blank.x - 1, next.blank.y);
 			next.blank.x--;
 			
-			next.message = "Moved blank up.";
-			
-			next.parent = checking.pos;
-			tree.list.push_back(next);
-			next.pos = tree.list.size() - 1;
-			avaliableStates.push(next);
-			if (checkGoalState(next.puzzle)) puzzleSolved = true;
+			assignNewOperator(checking, next, tree, avaliableStates, "Moved blank up.", h);
+			if (checkGoalState(next.puzzle))
+			{
+				puzzleSolved = true;
+				goalDepth = next.depth;
+			}
 		}
 		//check operation moving 9 right
 		if (!puzzleSolved && checking.blank.y != 2)
 		{
 			State next = checking;
+			totalNodesExpanded++;
 			
 			//swap elements
 			next.swap(next.blank.x, next.blank.y, next.blank.x, next.blank.y + 1);
 			next.blank.y++;
 			
-			next.message = "Moved blank right.";
-			
-			next.parent = checking.pos;
-			tree.list.push_back(next);
-			next.pos = tree.list.size() - 1;
-			avaliableStates.push(next);
-			if (checkGoalState(next.puzzle)) puzzleSolved = true;
+			assignNewOperator(checking, next, tree, avaliableStates, "Moved blank right.", h);
+			if (checkGoalState(next.puzzle))
+			{
+				puzzleSolved = true;
+				goalDepth = next.depth;
+			}
 		}
 		//check operation moving 9 down
 		if (!puzzleSolved && checking.blank.x != 2)
 		{
 			State next = checking;
+			totalNodesExpanded++;
 			
 			//swap elements
 			next.swap(next.blank.x, next.blank.y, next.blank.x + 1, next.blank.y);
 			next.blank.x++;
 			
-			next.message = "Moved blank down.";
-			
-			next.parent = checking.pos;
-			tree.list.push_back(next);
-			next.pos = tree.list.size() - 1;
-			avaliableStates.push(next);
-			if (checkGoalState(next.puzzle)) puzzleSolved = true;
+			assignNewOperator(checking, next, tree, avaliableStates, "Moved blank down.", h);
+			if (checkGoalState(next.puzzle))
+			{
+				puzzleSolved = true;
+				goalDepth = next.depth;
+			}
+		}
+		//check max size of queue
+		if (avaliableStates.size() > maxNodesInQueue) maxNodesInQueue = avaliableStates.size();
+		
+		//when puzzle is solved, display path
+		if (puzzleSolved)
+		{
+			displayAnswer(tree);
+			cout << "Total Nodes Expanded: " << totalNodesExpanded << endl;
+			cout << "Max Nodes in Queue: " << maxNodesInQueue << endl;
+			cout << "Depth of Goal: " << goalDepth << endl;
+			return true;
 		}
 	}
 	return false;
@@ -367,11 +414,18 @@ int main()
 	//init vectors
 	initVectors();
 	
+	cout << endl << "Default puzzle: " << endl;
+	displayPuzzle(puzzledefault);
+	
 	int puzzletype;
 	cout << "Welcome to Rica's eight-puzzle solver." << endl;
 	cout << "Type '1' to use default puzzle, type anything else to use custom puzzle." << endl;
 	cin >> puzzletype;
-
+	cout << endl;
+	
+	//out << "Which algorithm to use?" << endl;
+	//cout << "1: Uniform Cost Search"
+	
 	if (puzzletype == 1) //default puzzle
 	{
 		initial.puzzle = puzzledefault;
@@ -404,6 +458,6 @@ int main()
 		initial.depth = 0;
 	
 	}
-	if (generalSearch(initial)) cout << "Puzzle solved." << endl;
+	if (generalSearch(initial, NONE)) cout << "Puzzle solved." << endl;
 	else cout << "Puzzle is impossible to solve." << endl;
 }

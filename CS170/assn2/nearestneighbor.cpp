@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cmath>
 #include <stdlib.h> 
 #include <vector>
 #include <fstream>
@@ -6,6 +7,19 @@
 using namespace std;
 
 enum Algorithm {ForwardSelection, BackwardElimination, Ricarithm, All};
+
+//vertex on a graph
+struct Point
+{
+	double x;
+	double y;
+};
+
+//returns distance between 2 points
+double returnDistanceBetweenPoints(Point a, Point b)
+{
+	return sqrt(pow(abs(a.x - b.x), 2) + pow(abs(a.y - b.y), 2));
+}
 
 //read a given file, and initalize data
 void readFile(string filename)

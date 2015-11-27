@@ -26,7 +26,9 @@ struct Point
 //information for a class
 struct Container
 {
-	vector <vector<float> > features; 
+	vector <vector<double> > features;
+	vector<double> averages;
+	vector<double> standarddeviations;
 };
 
 Container c1;
@@ -42,12 +44,6 @@ int returnRandNumb(int a, int b)
 double returnDistanceBetweenPoints(Point a, Point b)
 {
 	return sqrt(pow(abs(a.x - b.x), 2) + pow(abs(a.y - b.y), 2));
-}
-
-//normalizes a value between the 0 to 1 range
-double normalize(double value, double max, double min)
-{
-	return (value - min) / (max - min);
 }
 
 //assign numb of features per row
@@ -76,7 +72,7 @@ int initNumbFeatures(string filename)
 	}
 }
 
-//read a given file, and initalize data
+//read a given file, and initalize data, averages, and standard deviations
 //inint numb of instances
 void readFile(string filename)
 {
@@ -109,8 +105,8 @@ void readFile(string filename)
 		{
 			cout << setprecision(13);
 			f >> value;
-			cout << "class: " << c << endl;
-			cout << "value: " << value << endl << endl;
+			//cout << "class: " << c << endl;
+			//cout << "value: " << value << endl << endl;
 			if (c == 1) //class 1
 			{
 				c1.features[i].push_back(value);
@@ -124,22 +120,77 @@ void readFile(string filename)
 				cout << "Not a valid class." << endl;
 				exit(1);
 			}
-			
 		}
 		numbInstances++;
 	}
-	
+	//cout << "numbinst: " << numbInstances << endl;
 	f.close();
 }
 
 //init containers/classes
 void init()
 {
-	vector<float> t;
+	vector<double> t;
 	for (unsigned int i = 0; i <  maxFeatures; ++i)
 	{
 		c1.features.push_back(t);
 		c2.features.push_back(t);
+	}
+}
+
+//get average of a group of elements
+double average(vector<double> v)
+{
+	double sum = 0;
+	for (unsigned int i = 0; i < v.size(); ++i)
+	{
+		sum += v[i];
+	}
+	return sum / v.size();
+}
+
+//get std deviation of a group of elements
+double deviation(vector<double> v, double avg)
+{
+	double sum;
+	for (unsigned int i = 0; i < v.size(); ++i)
+	{
+		sum += pow(v[i] - avg, 2);
+	}
+	return sqrt(sum / v.size());
+}
+
+//normalizes a value
+double znormalize(double value, double mean, double standarddev)
+{
+	return (value - mean) / (standarddev);
+}
+
+//normalize all features from every class
+void normalizeData()
+{
+	for (unsigned int i = 0; i < numbFeatures; ++i)
+	{
+		//cout << c1.features[i].size() << endl;
+		//cout << c2.features[i].size() << endl;
+		//get averages
+		c1.averages.push_back(average(c1.features[i]));
+		c2.averages.push_back(average(c2.features[i]));
+		//get stddev
+		c1.standarddeviations.push_back(deviation(c1.features[i], c1.averages[i]));
+		c2.standarddeviations.push_back(deviation(c2.features[i], c2.averages[i]));
+		for (unsigned int j = 0; j < c1.features[i].size(); ++j)
+		{
+			//cout << "before value: " << c1.features[i][j] << endl;
+			c1.features[i][j] = znormalize(c1.features[i][j], c1.averages[i], c1.standarddeviations[i]);
+			//cout << "normalized value: " << c1.features[i][j] << endl;
+		}
+		for (unsigned int j = 0; j < c2.features[i].size(); ++j)
+		{
+			//cout << "before value: " << c2.features[i][j] << endl;
+			c2.features[i][j] = znormalize(c2.features[i][j], c2.averages[i], c2.standarddeviations[i]);
+			//cout << "normalized value: " << c2.features[i][j] << endl;
+		}
 	}
 }
 
@@ -157,7 +208,7 @@ int main(int argc, char *argv[])
 		filename = "cs_170_small15.txt";
 		algorithm = 3;
 		numbFeatures = initNumbFeatures(filename);
-		cout << "nf: " << numbFeatures << endl;
+		//cout << "nf: " << numbFeatures << endl;
 		readFile(filename);
 	}
 	else
@@ -175,5 +226,11 @@ int main(int argc, char *argv[])
 		cout << "1: Backward Elimination" << endl;
 		cout << "2: Ricarithm" << endl; 
 		cout << "3: All Algorithms" << endl; 
+		cin >> algorithm;
 	}
+	
+	cout << "This data set has " << numbFeatures << " features (not including the class attribute), with " << numbInstances << " instances. " << endl;
+	cout << "Please wait while I normalize the data..." << endl;
+	normalizeData();
+	cout << "Done!" << endl;
 }

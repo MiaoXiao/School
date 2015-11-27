@@ -2,8 +2,10 @@
 #include <cmath>
 #include <stdlib.h> 
 #include <vector>
+#include <algorithm>
 #include <stdlib.h>
 #include <time.h> 
+#include <utility>
 #include <iomanip>
 #include <fstream>
 
@@ -19,8 +21,15 @@ enum Algorithm {ForwardSelection, BackwardElimination, Ricarithm, All};
 //vertex on a graph
 struct Point
 {
+	Point(double x, double y)
+		:x(x), y(y) {}
 	double x;
 	double y;
+};
+
+struct Graph
+{
+	vector<pair<int, Point> > points;
 };
 
 //information for a class
@@ -194,6 +203,88 @@ void normalizeData()
 	}
 }
 
+//get accuracy
+//k = size of subdivision
+//f1 = index of first feature
+//f2 = index of second feature
+double leaveOneOutEvaluation(int k, int f1, int f2)
+{
+	//x
+	vector<double> c1f1list = c1.features[f1];
+	vector<double> c2f1list = c2.features[f1];
+	
+	//y
+	vector<double> c1f2list = c1.features[f2];
+	vector<double> c2f2list = c2.features[f2];
+	
+	//create graph with both features
+	Graph g;
+	for (unsigned int i = 0; i < c1f1list.size(); ++i)
+	{
+		Point p(c1f1list[i], c1f2list[2]);
+		g.points.push_back(make_pair(1, p));
+	}
+	for (unsigned int i = 0; i < c2f1list.size(); ++i)
+	{
+		Point p(c2f1list[i], c2f2list[2]);
+		g.points.push_back(make_pair(2, p));
+	}
+	
+	//shuffle points in graph
+	random_shuffle(g.points.begin(), g.points.end());
+	
+	//current testcase (subdivision)
+	int minindex = 0;
+	int maxindex = k - 1;
+	
+	//index of current closest point
+	int closestindex = -1;
+	//current smallest distance
+	double closest = 100000000;
+	
+	//number of times correct
+	double numbCorrect = 0;
+	
+	while (maxindex < g.points.size())
+	{
+		//cout << "minindex: " << minindex << endl;
+		//cout << "maxindex: " << maxindex << endl;
+		//loop through all valid points to find closest point to current point
+		for (unsigned int i = minindex; i < maxindex; ++i)
+		{
+			for (unsigned int j = 0; j < g.points.size(); ++j)
+			{
+				//check to make sure the point we are comparing to is not already in the test set
+				if (j < minindex || j > maxindex)
+				{
+					//cout << j << endl;
+					//check if this point is closest;
+					double newclosest = returnDistanceBetweenPoints(g.points[i].second, g.points[j].second);
+					if (newclosest < closest)
+					{
+						closest = newclosest;
+						closestindex = j;
+					}
+				}
+			}
+			//determine if this point matches the correct class
+			if (g.points[i].first == g.points[closest].first) numbCorrect++;
+		}
+		//move test set
+		minindex += k;
+		maxindex += k;
+	}
+	//cout << "correct: " << numbCorrect << endl;
+	return (numbCorrect / g.points.size());
+}
+
+//forward selection algorithm
+void forwardSelection()
+{
+	cout << "percentage of first feature and second feature: " << endl;
+	cout << leaveOneOutEvaluation(10, 0, 1) << endl;
+}
+
 int main(int argc, char *argv[])
 {
 	srand(time(NULL));
@@ -233,4 +324,19 @@ int main(int argc, char *argv[])
 	cout << "Please wait while I normalize the data..." << endl;
 	normalizeData();
 	cout << "Done!" << endl;
+	
+	//choose correct algorithm, or run all algorithms
+	switch (algorithm)
+	{
+		case ForwardSelection:
+			forwardSelection();
+			break;
+		case BackwardElimination:
+			break;
+		case Ricarithm:
+			break;
+		case All:
+			forwardSelection();
+			break;
+	}
 }

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <stdlib.h>
 #include <time.h> 
+#include <queue>
 #include <utility>
 #include <iomanip>
 #include <fstream>
@@ -203,6 +204,15 @@ void normalizeData()
 	}
 }
 
+//for priority queue
+struct Compare
+{
+	bool operator()(const pair<int, double>& lhs, const pair<int, double>& rhs)
+	{
+		return lhs.second > rhs.second;
+	}
+};
+
 //get accuracy
 //k = size of subdivision
 //f1 = index of first feature
@@ -237,11 +247,6 @@ double leaveOneOutEvaluation(int k, int f1, int f2)
 	int minindex = 0;
 	int maxindex = k - 1;
 	
-	//index of current closest point
-	int closestindex = -1;
-	//current smallest distance
-	double closest = 100000000;
-	
 	//number of times correct
 	double numbCorrect = 0;
 	
@@ -252,6 +257,8 @@ double leaveOneOutEvaluation(int k, int f1, int f2)
 		//loop through all valid points to find closest point to current point
 		for (unsigned int i = minindex; i < maxindex; ++i)
 		{
+			//automiatically sorts points by smallest distance to largest
+			priority_queue<pair<int, double>, vector<pair<int, double> >, Compare > closelist;
 			for (unsigned int j = 0; j < g.points.size(); ++j)
 			{
 				//check to make sure the point we are comparing to is not already in the test set
@@ -259,23 +266,30 @@ double leaveOneOutEvaluation(int k, int f1, int f2)
 				{
 					//cout << j << endl;
 					//check if this point is closest;
-					double newclosest = returnDistanceBetweenPoints(g.points[i].second, g.points[j].second);
-					if (newclosest < closest)
-					{
-						closest = newclosest;
-						closestindex = j;
-					}
+					double distance = returnDistanceBetweenPoints(g.points[i].second, g.points[j].second);
+					closelist.push(make_pair(g.points[j].first, distance));
 				}
 			}
-			//determine if this point matches the correct class
-			if (g.points[i].first == g.points[closest].first) numbCorrect++;
+			//determine if this point matches the correct class by comparing the point to the
+			//kth - 1 smallest elements,
+			int correct = 0;
+			int incorrect = 0;
+			for (unsigned int j = 0; j < k - 1; ++j)
+			{
+				if (closelist.top().first == g.points[i].first) correct++;
+				else incorrect++;
+				closelist.pop();
+			}
+			//cout << "c: " << correct << endl;
+			//cout << "ic: " << incorrect << endl;
+			if (correct > incorrect) numbCorrect++;
 		}
 		//move test set
 		minindex += k;
 		maxindex += k;
 	}
 	//cout << "correct: " << numbCorrect << endl;
-	return (numbCorrect / g.points.size());
+	return numbCorrect / g.points.size();
 }
 
 //forward selection algorithm

@@ -13,8 +13,10 @@
 using namespace std;
 
 int maxFeatures = 64;
-int numbFeatures = 4;
+int numbFeatures = 0;
 int maxInstances = 2048;
+int c1Instances = 0;
+int c2Instances = 0;
 int numbInstances = 0;
 
 enum Algorithm {ForwardSelection, BackwardElimination, Ricarithm, All};
@@ -22,10 +24,9 @@ enum Algorithm {ForwardSelection, BackwardElimination, Ricarithm, All};
 //vertex on a graph
 struct Point
 {
-	Point(double x, double y)
-		:x(x), y(y) {}
-	double x;
-	double y;
+	Point(vector<double> c)
+		: coordinates(c) {}
+	vector<double> coordinates;
 };
 
 struct Graph
@@ -50,10 +51,17 @@ int returnRandNumb(int a, int b)
 	return rand() % a + b;
 }
 
-//returns distance between 2 points
-double returnDistanceBetweenPoints(Point a, Point b)
+//returns distance between two points
+//given list of all features to test and index
+double returnDistance(vector<double> a, vector<double> b)
 {
-	return sqrt(pow(abs(a.x - b.x), 2) + pow(abs(a.y - b.y), 2));
+	double sum = 0;
+	for (unsigned int i = 0; i < a.size(); ++i)
+	{
+		//cout << "i: " << i << endl;
+		sum += pow(a[i] - b[i], 2);
+	}
+	return sqrt(sum);
 }
 
 //assign numb of features per row
@@ -132,16 +140,18 @@ void readFile(string filename)
 			}
 		}
 		numbInstances++;
+		if (c == 1) c1Instances++;
+		else c2Instances++;
 	}
 	//cout << "numbinst: " << numbInstances << endl;
 	f.close();
 }
 
 //init containers/classes
-void init()
+void initFeatures()
 {
 	vector<double> t;
-	for (unsigned int i = 0; i <  maxFeatures; ++i)
+	for (unsigned int i = 0; i <  numbFeatures; ++i)
 	{
 		c1.features.push_back(t);
 		c2.features.push_back(t);
@@ -215,33 +225,37 @@ struct Compare
 
 //get accuracy
 //k = size of subdivision
-//f1 = index of first feature
-//f2 = index of second feature
-double leaveOneOutEvaluation(int k, int f1, int f2)
+//f is a vector of all features to test
+double leaveOneOutEvaluation(int k, vector<int> f)
 {
-	//x
-	vector<double> c1f1list = c1.features[f1];
-	vector<double> c2f1list = c2.features[f1];
-	
-	//y
-	vector<double> c1f2list = c1.features[f2];
-	vector<double> c2f2list = c2.features[f2];
-	
-	//create graph with both features
+	//create graph with all relevant features
 	Graph g;
-	for (unsigned int i = 0; i < c1f1list.size(); ++i)
+	//add all c1 points
+	for (unsigned int i = 0; i < c1Instances; ++i)
 	{
-		Point p(c1f1list[i], c1f2list[2]);
-		g.points.push_back(make_pair(1, p));
+		vector<double> c1coord;
+		for (unsigned int j = 0; j < f.size(); ++j)
+		{
+			c1coord.push_back(c1.features[f[j]][i]);
+		}
+		Point p1(c1coord);
+		g.points.push_back(make_pair(1, p1));
 	}
-	for (unsigned int i = 0; i < c2f1list.size(); ++i)
+	//add all c2 points
+	for (unsigned int i = 0; i < c2Instances; ++i)
 	{
-		Point p(c2f1list[i], c2f2list[2]);
-		g.points.push_back(make_pair(2, p));
-	}
-	
-	//shuffle points in graph
+		vector<double> c2coord;
+		for (unsigned int j = 0; j < f.size(); ++j)
+		{
+			c2coord.push_back(c2.features[f[j]][i]);
+		}
+		Point p2(c2coord);
+		g.points.push_back(make_pair(2, p2));
+	}	
+	//shuffle all coordinates in graph
 	random_shuffle(g.points.begin(), g.points.end());
+	cout << "graph size " << g.points.size() << endl;
+	
 	
 	//current testcase (subdivision)
 	int minindex = 0;
@@ -250,23 +264,25 @@ double leaveOneOutEvaluation(int k, int f1, int f2)
 	//number of times correct
 	double numbCorrect = 0;
 	
-	while (maxindex < g.points.size())
+	//loop until every combination of test/train casees tested
+	while (maxindex < numbInstances)
 	{
 		//cout << "minindex: " << minindex << endl;
 		//cout << "maxindex: " << maxindex << endl;
 		//loop through all valid points to find closest point to current point
 		for (unsigned int i = minindex; i < maxindex; ++i)
 		{
-			//automiatically sorts points by smallest distance to largest
+			cout << "begin check" << endl;
+			//automatically sorts points by smallest distance to largest
 			priority_queue<pair<int, double>, vector<pair<int, double> >, Compare > closelist;
-			for (unsigned int j = 0; j < g.points.size(); ++j)
+			for (unsigned int j = 0; j < numbInstances; ++j)
 			{
 				//check to make sure the point we are comparing to is not already in the test set
 				if (j < minindex || j > maxindex)
 				{
 					//cout << j << endl;
 					//check if this point is closest;
-					double distance = returnDistanceBetweenPoints(g.points[i].second, g.points[j].second);
+					double distance = returnDistance(g.points[i].second.coordinates, g.points[j].second.coordinates);
 					closelist.push(make_pair(g.points[j].first, distance));
 				}
 			}
@@ -276,12 +292,13 @@ double leaveOneOutEvaluation(int k, int f1, int f2)
 			int incorrect = 0;
 			for (unsigned int j = 0; j < k - 1; ++j)
 			{
+				cout << "check distance: " << closelist.top().second << endl;
 				if (closelist.top().first == g.points[i].first) correct++;
 				else incorrect++;
 				closelist.pop();
 			}
-			//cout << "c: " << correct << endl;
-			//cout << "ic: " << incorrect << endl;
+			cout << "c: " << correct << endl;
+			cout << "ic: " << incorrect << endl;
 			if (correct > incorrect) numbCorrect++;
 		}
 		//move test set
@@ -295,8 +312,10 @@ double leaveOneOutEvaluation(int k, int f1, int f2)
 //forward selection algorithm
 void forwardSelection()
 {
+	vector<int> testfeatures;
+	testfeatures.push_back(0);
 	cout << "percentage of first feature and second feature: " << endl;
-	cout << leaveOneOutEvaluation(10, 0, 1) << endl;
+	cout << leaveOneOutEvaluation(10, testfeatures) << endl;
 }
 
 int main(int argc, char *argv[])
@@ -306,13 +325,14 @@ int main(int argc, char *argv[])
 	string filename;
 	int algorithm;
 	
-	init();
+	
 	//if there is any command arg, automiatically run tests
 	if (argc != 1)
 	{
 		filename = "cs_170_small15.txt";
 		algorithm = 3;
 		numbFeatures = initNumbFeatures(filename);
+		initFeatures();
 		//cout << "nf: " << numbFeatures << endl;
 		readFile(filename);
 	}
@@ -323,6 +343,7 @@ int main(int argc, char *argv[])
 		cout << "Type in the name of the file to test: ";
 		cin >> filename;
 		numbFeatures = initNumbFeatures(filename);
+		initFeatures();
 		readFile(filename);
 		
 		//which algorith to use?
@@ -334,10 +355,10 @@ int main(int argc, char *argv[])
 		cin >> algorithm;
 	}
 	
-	cout << "This data set has " << numbFeatures << " features (not including the class attribute), with " << numbInstances << " instances. " << endl;
-	cout << "Please wait while I normalize the data..." << endl;
+	cout << "This data set has " << numbFeatures << " features (not including the class attribute), with " << numbInstances << " instances. " << endl << endl;
+	cout << "Please wait while I normalize the data...";
 	normalizeData();
-	cout << "Done!" << endl;
+	cout << "Done!" << endl << endl;
 	
 	//choose correct algorithm, or run all algorithms
 	switch (algorithm)

@@ -12,17 +12,17 @@
 
 using namespace std;
 
-//subdivision
-#define K 10
 //check this number of nearest k neghbors
-#define NEARESTK 21
+#define NEARESTK 3
 
-int maxFeatures = 64;
+const int maxFeatures = 64;
 int numbFeatures = 0;
-int maxInstances = 2048;
+const int maxInstances = 2048;
 int c1Instances = 0;
 int c2Instances = 0;
 int numbInstances = 0;
+
+int K;
 
 enum Algorithm {ForwardSelection, BackwardElimination, Ricarithm, All};
 
@@ -148,6 +148,8 @@ void readFile(string filename)
 		if (c == 1) c1Instances++;
 		else c2Instances++;
 	}
+	//get K (size of subdivision)
+	K = sqrt(numbInstances);
 	//cout << "numbinst: " << numbInstances << endl;
 	f.close();
 }
@@ -240,7 +242,7 @@ struct Compare
 	}
 };
 
-//get accuracy
+//returns accuracy
 //k = size of subdivision
 //f is a vector of all features to test
 double leaveOneOutEvaluation(int k, vector<int> f)
@@ -253,6 +255,7 @@ double leaveOneOutEvaluation(int k, vector<int> f)
 		vector<double> c1coord;
 		for (unsigned int j = 0; j < f.size(); ++j)
 		{
+			//cout << "class 1: " << c1.features[f[j]][i] << endl;
 			c1coord.push_back(c1.features[f[j]][i]);
 		}
 		Point p1(c1coord);
@@ -264,6 +267,7 @@ double leaveOneOutEvaluation(int k, vector<int> f)
 		vector<double> c2coord;
 		for (unsigned int j = 0; j < f.size(); ++j)
 		{
+			//cout << "class 2: " << c2.features[f[j]][i] << endl;
 			c2coord.push_back(c2.features[f[j]][i]);
 		}
 		Point p2(c2coord);
@@ -272,6 +276,18 @@ double leaveOneOutEvaluation(int k, vector<int> f)
 	//shuffle all coordinates in graph
 	random_shuffle(g.points.begin(), g.points.end());
 	//cout << "graph size " << g.points.size() << endl;
+	
+	//display shuffled points
+	/*
+	for (unsigned int i = 0; i < g.points.size(); ++i)
+	{
+		cout << "class: " <<  g.points[i].first << endl;
+		for (unsigned int j = 0; j < g.points[i].second.coordinates.size(); ++j)
+		{
+			cout << g.points[i].second.coordinates[j] << endl;
+		}
+	}
+	cout << "graph size: " << g.points.size() << endl;*/
 	
 	//starting testcase (subdivision)
 	int minindex = 0;
@@ -330,7 +346,7 @@ void displaySet(vector<int> v)
 {
 	for (unsigned int i = 0; i < v.size(); ++i)
 	{
-		cout << v[i];
+		cout << v[i] + 1;
 		if (i != v.size() - 1) cout << ", ";
 	}
 }
@@ -394,6 +410,7 @@ void forwardSelection()
 		}
 		testfeatures.push_back(bestfeatureIndex);
 		
+		cout << endl;
 		if (bestpercentage > answerpercentage)
 		{
 			answer = bestfeatures;
@@ -405,7 +422,7 @@ void forwardSelection()
 		}
 		cout << "Feature set {";
 		displaySet(testfeatures);
-		cout << "} was best, accuracy is " << bestpercentage * 100.0 << "%" << endl;
+		cout << "} was best, accuracy is " << bestpercentage * 100.0 << "%" << endl << endl;
 	}
 	cout << "Finished search!! The best feature subset is {";
 	displaySet(answer);
@@ -440,7 +457,7 @@ void backwardElimination()
 	displaySet(testfeatures);
 	cout << "} accuracy is " << answerpercentage * 100.0 << "%" << endl;
 	
-	while (testfeatures.size() != 0)
+	while (testfeatures.size() != 1)
 	{
 		bestpercentage = 0;
 		bestfeatureIndex = 0;
@@ -474,7 +491,8 @@ void backwardElimination()
 			//cout << "sdf" << endl;
 		}
 		
-		cout << "best fe in: " << bestfeatureIndex << endl;
+		cout << endl;
+		//cout << "best fe in: " << bestfeatureIndex << endl;
 		//remove the element that will increase accuracy the most
 		testfeatures.erase(testfeatures.begin() + bestfeatureIndex);
 		if (bestpercentage > answerpercentage)
@@ -488,7 +506,7 @@ void backwardElimination()
 		}
 		cout << "Feature set {";
 		displaySet(bestfeatures);
-		cout << "} was best, accuracy is " << bestpercentage * 100.0 << "%" << endl;
+		cout << "} was best, accuracy is " << bestpercentage * 100.0 << "%" << endl << endl;
 	}
 	cout << "Finished search!! The best feature subset is {";
 	displaySet(answer);
@@ -501,7 +519,6 @@ int main(int argc, char *argv[])
 	
 	string filename;
 	int algorithm;
-	
 	
 	//if there is any command arg, automiatically run tests
 	if (argc != 1)
@@ -549,8 +566,8 @@ int main(int argc, char *argv[])
 		case Ricarithm:
 			break;
 		case All:
-			//forwardSelection();
-			backwardElimination();
+			forwardSelection();
+			//backwardElimination();
 			break;
 	}
 }

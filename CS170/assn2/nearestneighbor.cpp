@@ -22,7 +22,7 @@ int c1Instances = 0;
 int c2Instances = 0;
 int numbInstances = 0;
 
-int K = 10;
+int K = 1;
 
 enum Algorithm {ForwardSelection, BackwardElimination, Ricarithm, All};
 
@@ -352,8 +352,6 @@ void displaySet(vector<int> v)
 //forward selection algorithm
 void forwardSelection()
 {
-	//vector for keeping track of best features
-	vector<int> answer;
 	//vector for testing current features
 	vector<int> testfeatures;
 	vector<int> bestfeatures;
@@ -365,17 +363,23 @@ void forwardSelection()
 	//feature number of best
 	double bestfeatureIndex;
 	
-	//best overall percentage
-	double answerpercentage = 0;
+	double temppercentage;
+	double tempindex;
 	
 	bool keepfeature = true;
 	
+	bool done = false;
+	
+	//set to true if new best feature was found
+	bool okay = false;
+	
 	cout << "Beginning Search." << endl;
-	for (unsigned x = 0; x < numbFeatures; ++x)
+	for (unsigned x = 0; x < numbFeatures && !done; ++x)
 	{
-		bestpercentage = 0;
-		bestfeatureIndex = 0;
+		okay = false;
 		currpercentage = 0;
+		tempindex = 0;
+		temppercentage = 0;
 		
 		//check next best feature to add in
 		for (unsigned int i = 0; i < numbFeatures; ++i)
@@ -399,32 +403,39 @@ void forwardSelection()
 				
 				if (currpercentage > bestpercentage)
 				{
+					okay = true;
+					
+					temppercentage = currpercentage;
+					tempindex = i;		
+					
 					bestpercentage = currpercentage;
 					bestfeatureIndex = testfeatures[testfeatures.size() - 1];
 					bestfeatures = testfeatures;
 				}
+				if (currpercentage > temppercentage)
+				{
+					temppercentage = currpercentage;
+					tempindex = i;					
+				}
 				testfeatures.pop_back();
 			}
 		}
-		testfeatures.push_back(bestfeatureIndex);
+		testfeatures.push_back(tempindex);
 		
 		cout << endl;
-		if (bestpercentage > answerpercentage)
-		{
-			answer = bestfeatures;
-			answerpercentage = bestpercentage;
-		}
-		else
+		//if no best feature was found, finish searching
+		if (!okay)
 		{
 			cout << "(Warning, Accuracy has decreased! Continuing search in case of local maxima)" << endl;
+			done = true;
 		}
 		cout << "Feature set {";
 		displaySet(testfeatures);
-		cout << "} was best, accuracy is " << bestpercentage * 100.0 << "%" << endl << endl;
+		cout << "} was best, accuracy is " << temppercentage * 100.0 << "%" << endl << endl;
 	}
 	cout << "Finished search!! The best feature subset is {";
-	displaySet(answer);
-	cout << "}, which has an accuracy of " << answerpercentage * 100.0 << "%" << endl;
+	displaySet(bestfeatures);
+	cout << "}, which has an accuracy of " << bestpercentage * 100.0 << "%" << endl;
 }
 
 void backwardElimination()
@@ -449,13 +460,15 @@ void backwardElimination()
 	//best overall percentage
 	double answerpercentage = leaveOneOutEvaluation(K, testfeatures);
 	
+	bool done = false;
+	
 	cout << "Beginning Search." << endl;
 	
 	cout << "\tUsing ALL feature(s) {";
 	displaySet(testfeatures);
 	cout << "} accuracy is " << answerpercentage * 100.0 << "%" << endl;
 	
-	while (testfeatures.size() != 1)
+	while (testfeatures.size() != 1 && !done)
 	{
 		bestpercentage = 0;
 		bestfeatureIndex = 0;
@@ -501,6 +514,7 @@ void backwardElimination()
 		else
 		{
 			cout << "(Warning, Accuracy has decreased! Continuing search in case of local maxima)" << endl;
+			//done = false;
 		}
 		cout << "Feature set {";
 		displaySet(bestfeatures);
@@ -509,6 +523,138 @@ void backwardElimination()
 	cout << "Finished search!! The best feature subset is {";
 	displaySet(answer);
 	cout << "}, which has an accuracy of " << answerpercentage * 100.0 << "%" << endl;
+}
+
+void ricarithm()
+{
+	//vector for testing current features
+	vector<int> testfeatures;
+	//push half elements
+	for (unsigned int i = 0; i < numbFeatures / 2; ++i) testfeatures.push_back(i);
+
+	vector<int> bestfeatures;
+	
+	//current percentage
+	double currpercentage;
+	//best percentage for this set of features
+	double bestpercentage;
+	//feature number of best
+	double bestfeatureIndex;
+	
+	double temppercentage;
+	double tempindex;
+	
+	bool keepfeature = true;
+	
+	bool done = false;
+	
+	//set to true if new best feature was found
+	bool okay = false;
+	
+	cout << "Beginning Search." << endl;
+	for (unsigned x = 0; x < numbFeatures && !done; ++x)
+	{
+		okay = false;
+		currpercentage = 0;
+		tempindex = 0;
+		temppercentage = 0;
+		
+		//check next best feature to add in
+		for (unsigned int i = 0; i < numbFeatures; ++i)
+		{
+			keepfeature = true;
+			//check to see if we already have this feature
+			for (unsigned int j = 0; j < testfeatures.size(); ++j)
+			{
+				if (testfeatures[j] == i) keepfeature = false;
+			}
+			//only check accuracy if we did not check this feature yet
+			if (keepfeature)
+			{
+				testfeatures.push_back(i);
+				
+				cout << "\tUsing feature(s) {";
+				displaySet(testfeatures);
+				cout << "} accuracy is ";
+				currpercentage = leaveOneOutEvaluation(K, testfeatures);
+				cout << currpercentage * 100.0 << "%" << endl;
+				
+				if (currpercentage > bestpercentage)
+				{
+					okay = true;
+					
+					temppercentage = currpercentage;
+					tempindex = i;		
+					
+					bestpercentage = currpercentage;
+					bestfeatureIndex = testfeatures[testfeatures.size() - 1];
+					bestfeatures = testfeatures;
+				}
+				if (currpercentage > temppercentage)
+				{
+					temppercentage = currpercentage;
+					tempindex = i;					
+				}
+				testfeatures.pop_back();
+			}
+		}
+		bool remove = false;
+		//check next best feature to add in
+		for (unsigned int i = 0; i < testfeatures.size(); ++i)
+		{
+			//cout << "Removing Element: " << testfeatures[i] << endl;
+			//erase the ith element, then test that
+			double save = testfeatures[i];
+			testfeatures.erase(testfeatures.begin() + i);
+			
+			cout << "\tUsing feature(s) {";
+			displaySet(testfeatures);
+			cout << "} accuracy is ";
+			
+			currpercentage = leaveOneOutEvaluation(K, testfeatures);
+			cout << currpercentage * 100.0 << "%" << endl;
+			if (currpercentage > bestpercentage)
+			{
+				okay = true;
+				remove = true;
+				bestpercentage = currpercentage;
+				bestfeatureIndex = i;
+				bestfeatures = testfeatures;
+			}
+			
+			testfeatures.push_back(save);
+			sort(testfeatures.begin(), testfeatures.end());
+			
+			//add the element back on, then sort again
+			//cout << "Adding Element" << save << endl;
+
+			//cout << "sdf" << endl;
+		}
+		//testfeatures.push_back(tempindex);
+		if (remove)
+		{
+			testfeatures.erase(testfeatures.begin() + bestfeatureIndex);
+		}
+		else
+		{
+			testfeatures.push_back(tempindex);
+		}
+		
+		
+		cout << endl;
+		//if no best feature was found, finish searching
+		if (!okay)
+		{
+			cout << "(Warning, Accuracy has decreased! Continuing search in case of local maxima)" << endl;
+			done = true;
+		}
+		cout << "Feature set {";
+		displaySet(testfeatures);
+		cout << "} was best, accuracy is " << bestpercentage * 100.0 << "%" << endl << endl;
+	}
+	cout << "Finished search!! The best feature subset is {";
+	displaySet(bestfeatures);
+	cout << "}, which has an accuracy of " << bestpercentage * 100.0 << "%" << endl;
 }
 
 int main(int argc, char *argv[])
@@ -562,7 +708,6 @@ int main(int argc, char *argv[])
 	normalizeData();
 	cout << "Done!" << endl << endl;
 	
-	cout << algorithm << endl;
 	//choose specified algorithm, or run all algorithms
 	switch (algorithm)
 	{
@@ -573,6 +718,7 @@ int main(int argc, char *argv[])
 			backwardElimination();
 			break;
 		case Ricarithm:
+			ricarithm();
 			break;
 	}
 }

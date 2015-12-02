@@ -22,7 +22,7 @@ int c1Instances = 0;
 int c2Instances = 0;
 int numbInstances = 0;
 
-int K;
+int K = 10;
 
 enum Algorithm {ForwardSelection, BackwardElimination, Ricarithm, All};
 
@@ -148,8 +148,6 @@ void readFile(string filename)
 		if (c == 1) c1Instances++;
 		else c2Instances++;
 	}
-	//get K (size of subdivision)
-	K = sqrt(numbInstances);
 	//cout << "numbinst: " << numbInstances << endl;
 	f.close();
 }
@@ -302,7 +300,7 @@ double leaveOneOutEvaluation(int k, vector<int> f)
 		//cout << "minindex: " << minindex << endl;
 		//cout << "maxindex: " << maxindex << endl;
 		//loop through all valid points to find closest point to current point
-		for (unsigned int i = minindex; i < maxindex; ++i)
+		for (unsigned int i = minindex; i <= maxindex; ++i)
 		{
 			//cout << "begin check" << endl;
 			//automatically sorts points by smallest distance to largest
@@ -310,7 +308,7 @@ double leaveOneOutEvaluation(int k, vector<int> f)
 			for (unsigned int j = 0; j < numbInstances; ++j)
 			{
 				//check to make sure the point we are comparing to is not already in the test set
-				if (j < minindex || j > maxindex)
+				if (j <= minindex || j > maxindex)
 				{
 					//cout << j << endl;
 					//check if this point is closest;
@@ -524,7 +522,13 @@ int main(int argc, char *argv[])
 	if (argc != 1)
 	{
 		filename = "cs_170_small80.txt";
-		algorithm = 3;
+		
+		cout << *argv[1] << endl;
+		//choose algorithm
+		if(*argv[1] == '1') algorithm = 0;
+		else if (*argv[1] == '2') algorithm = 1;
+		else algorithm = 2;
+		
 		numbFeatures = initNumbFeatures(filename);
 		initFeatures();
 		//cout << "nf: " << numbFeatures << endl;
@@ -545,8 +549,12 @@ int main(int argc, char *argv[])
 		cout << "0: Forward Selection" << endl;
 		cout << "1: Backward Elimination" << endl;
 		cout << "2: Ricarithm" << endl; 
-		cout << "3: All Algorithms" << endl; 
 		cin >> algorithm;
+		if (algorithm < 0 || algorithm > 2)
+		{
+			cout << "Not a valid algorithm." << endl;
+			exit(1);
+		}
 	}
 	
 	cout << "This data set has " << numbFeatures << " features (not including the class attribute), with " << numbInstances << " instances. " << endl << endl;
@@ -554,6 +562,7 @@ int main(int argc, char *argv[])
 	normalizeData();
 	cout << "Done!" << endl << endl;
 	
+	cout << algorithm << endl;
 	//choose specified algorithm, or run all algorithms
 	switch (algorithm)
 	{
@@ -564,10 +573,6 @@ int main(int argc, char *argv[])
 			backwardElimination();
 			break;
 		case Ricarithm:
-			break;
-		case All:
-			forwardSelection();
-			//backwardElimination();
 			break;
 	}
 }

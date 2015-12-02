@@ -15,14 +15,21 @@ using namespace std;
 //check this number of nearest k neghbors
 #define NEARESTK 3
 
+//features
 const int maxFeatures = 64;
 int numbFeatures = 0;
+
+//instances (rows)
 const int maxInstances = 2048;
 int c1Instances = 0;
 int c2Instances = 0;
 int numbInstances = 0;
 
-int K = 1;
+//subdivision
+int K = 10;
+
+double average = 0;
+double standarddev = 0;
 
 enum Algorithm {ForwardSelection, BackwardElimination, Ricarithm, All};
 
@@ -95,10 +102,23 @@ int initNumbFeatures(string filename)
 	}
 }
 
+//get std deviation of all elements
+double deviation(vector<double> v)
+{
+	double sum = 0;
+	for (unsigned int i = 0; i < v.size(); ++i)
+	{
+		sum += pow(v[i] - average, 2);
+	}
+	return sqrt(sum / v.size());
+}
+
 //read a given file, and initalize data, averages, and standard deviations
 //inint numb of instances
 void readFile(string filename)
 {
+	//holds all values
+	vector<double> allValues;
 	//open file
 	ifstream f;
 	f.open(filename.c_str());
@@ -128,6 +148,8 @@ void readFile(string filename)
 		{
 			cout << setprecision(20);
 			f >> value;
+			average += value;
+			allValues.push_back(value);
 			//cout << "class: " << c << endl;
 			//cout << "value: " << value << endl << endl;
 			if (c == 1) //class 1
@@ -150,6 +172,10 @@ void readFile(string filename)
 	}
 	//cout << "numbinst: " << numbInstances << endl;
 	f.close();
+	//get final average
+	average /= allValues.size();
+	//get final standard deviation
+	standarddev = deviation(allValues);
 }
 
 //init containers/classes
@@ -163,32 +189,10 @@ void initFeatures()
 	}
 }
 
-//get average of a group of elements
-double average(vector<double> v)
-{
-	double sum = 0;
-	for (unsigned int i = 0; i < v.size(); ++i)
-	{
-		sum += v[i];
-	}
-	return sum / v.size();
-}
-
-//get std deviation of a group of elements
-double deviation(vector<double> v, double avg)
-{
-	double sum;
-	for (unsigned int i = 0; i < v.size(); ++i)
-	{
-		sum += pow(v[i] - avg, 2);
-	}
-	return sqrt(sum / v.size());
-}
-
 //normalizes a value
-double znormalize(double value, double mean, double standarddev)
+double znormalize(double value)
 {
-	return (value - mean) / (standarddev);
+	return (value - average) / (standarddev);
 }
 
 //normalize all features from every class
@@ -196,36 +200,20 @@ void normalizeData()
 {
 	for (unsigned int i = 0; i < numbFeatures; ++i)
 	{
-		//holds all data from both classes about 1 feature
-		vector<double> combinedData;
-		
 		//cout << c1.features[i].size() << endl;
 		//cout << c2.features[i].size() << endl;
-		
-		//fill up combinedData with information about 1 feature 
-		for (unsigned int j = 0; j < c1.features[j].size(); ++j)
-		{
-			combinedData.push_back(c1.features[i][j]);
-		}
-		for (unsigned int j = 0; j < c2.features[j].size(); ++j)
-		{
-			combinedData.push_back(c2.features[i][j]);
-		}
-		//get average and deviation for this feature
-		double featureAverage = average(combinedData);
-		double featureDeviation = deviation(combinedData, featureAverage);
 		
 		//normalize each data value for that feature
 		for (unsigned int j = 0; j < c1.features[i].size(); ++j)
 		{
 			//cout << "before value: " << c1.features[i][j] << endl;
-			c1.features[i][j] = znormalize(c1.features[i][j], featureAverage, featureDeviation);
+			c1.features[i][j] = znormalize(c1.features[i][j]);
 			//cout << "normalized value: " << c1.features[i][j] << endl;
 		}
 		for (unsigned int j = 0; j < c2.features[i].size(); ++j)
 		{
 			//cout << "before value: " << c2.features[i][j] << endl;
-			c2.features[i][j] = znormalize(c2.features[i][j], featureAverage, featureDeviation);
+			c2.features[i][j] = znormalize(c2.features[i][j]);
 			//cout << "normalized value: " << c2.features[i][j] << endl;
 		}
 	}
@@ -273,19 +261,6 @@ double leaveOneOutEvaluation(int k, vector<int> f)
 	}	
 	//shuffle all coordinates in graph
 	random_shuffle(g.points.begin(), g.points.end());
-	//cout << "graph size " << g.points.size() << endl;
-	
-	//display shuffled points
-	/*
-	for (unsigned int i = 0; i < g.points.size(); ++i)
-	{
-		cout << "class: " <<  g.points[i].first << endl;
-		for (unsigned int j = 0; j < g.points[i].second.coordinates.size(); ++j)
-		{
-			cout << g.points[i].second.coordinates[j] << endl;
-		}
-	}
-	cout << "graph size: " << g.points.size() << endl;*/
 	
 	//starting testcase (subdivision)
 	int minindex = 0;
@@ -364,21 +339,21 @@ void forwardSelection()
 	double bestfeatureIndex;
 	
 	double temppercentage;
-	double tempindex;
+	double tempIndex;
 	
 	bool keepfeature = true;
 	
 	bool done = false;
 	
 	//set to true if new best feature was found
-	bool okay = false;
+	bool better_feature_found = false;
 	
 	cout << "Beginning Search." << endl;
 	for (unsigned x = 0; x < numbFeatures && !done; ++x)
 	{
-		okay = false;
+		better_feature_found = false;
 		currpercentage = 0;
-		tempindex = 0;
+		tempIndex = 0;
 		temppercentage = 0;
 		
 		//check next best feature to add in
@@ -403,10 +378,10 @@ void forwardSelection()
 				
 				if (currpercentage > bestpercentage)
 				{
-					okay = true;
+					better_feature_found = true;
 					
 					temppercentage = currpercentage;
-					tempindex = i;		
+					tempIndex = i;		
 					
 					bestpercentage = currpercentage;
 					bestfeatureIndex = testfeatures[testfeatures.size() - 1];
@@ -415,16 +390,16 @@ void forwardSelection()
 				if (currpercentage > temppercentage)
 				{
 					temppercentage = currpercentage;
-					tempindex = i;					
+					tempIndex = i;					
 				}
 				testfeatures.pop_back();
 			}
 		}
-		testfeatures.push_back(tempindex);
+		testfeatures.push_back(tempIndex);
 		
 		cout << endl;
 		//if no best feature was found, finish searching
-		if (!okay)
+		if (!better_feature_found)
 		{
 			cout << "(Warning, Accuracy has decreased! Continuing search in case of local maxima)" << endl;
 			done = true;
@@ -440,23 +415,24 @@ void forwardSelection()
 
 void backwardElimination()
 {
-	//vector for keeping track of best features
-	vector<int> answer;
 	//vector for testing current features
 	vector<int> testfeatures;
 	for (unsigned int i = 0; i < numbFeatures; ++i)
 	{
 		testfeatures.push_back(i);
 	}
-	vector<int> bestfeatures;
-	
+		
 	//current percentage
 	double currpercentage;
+	
+	vector<int> bestfeatures;
 	//best percentage for this set of features
 	double bestpercentage;
 	//feature number of best
 	double bestfeatureIndex;
 	
+	//vector for keeping track of best features
+	vector<int> answer;
 	//best overall percentage
 	double answerpercentage = leaveOneOutEvaluation(K, testfeatures);
 	
@@ -479,7 +455,7 @@ void backwardElimination()
 		{
 			//cout << "Removing Element: " << testfeatures[i] << endl;
 			//erase the ith element, then test that
-			double save = testfeatures[i];
+			double saveValue = testfeatures[i];
 			testfeatures.erase(testfeatures.begin() + i);
 			
 			cout << "\tUsing feature(s) {";
@@ -496,8 +472,8 @@ void backwardElimination()
 			}
 			
 			//add the element back on, then sort again
-			//cout << "Adding Element" << save << endl;
-			testfeatures.push_back(save);
+			//cout << "Adding Element" << saveValue << endl;
+			testfeatures.push_back(saveValue);
 			sort(testfeatures.begin(), testfeatures.end());
 			//cout << "sdf" << endl;
 		}
@@ -533,31 +509,41 @@ void ricarithm()
 	for (unsigned int i = 0; i < numbFeatures / 2; ++i) testfeatures.push_back(i);
 
 	vector<int> bestfeatures;
-	
-	//current percentage
-	double currpercentage;
 	//best percentage for this set of features
 	double bestpercentage;
 	//feature number of best
 	double bestfeatureIndex;
 	
+	//current percentage
+	double currpercentage;
+	
 	double temppercentage;
-	double tempindex;
+	//for adding elements
+	double tempIndex;
+	double tempValue;
+	
+	//for removing elements	
+	double temp2Value;
+	double temp2Index;
 	
 	bool keepfeature = true;
-	
 	bool done = false;
 	
 	//set to true if new best feature was found
-	bool okay = false;
+	bool better_feature_found = false;
 	
 	cout << "Beginning Search." << endl;
 	for (unsigned x = 0; x < numbFeatures && !done; ++x)
 	{
-		okay = false;
+		better_feature_found = false;
 		currpercentage = 0;
-		tempindex = 0;
 		temppercentage = 0;
+		
+		tempValue = 0;
+		tempIndex = 0;
+
+		temp2Value = 0;
+		temp2Index = 0;
 		
 		//check next best feature to add in
 		for (unsigned int i = 0; i < numbFeatures; ++i)
@@ -581,77 +567,90 @@ void ricarithm()
 				
 				if (currpercentage > bestpercentage)
 				{
-					okay = true;
+					better_feature_found = true;
 					
+					//best percentage for this feature
 					temppercentage = currpercentage;
-					tempindex = i;		
+					tempValue = testfeatures[testfeatures.size() - 1];
+					tempIndex = testfeatures.size() - 1;
 					
+					//best percentage overall
 					bestpercentage = currpercentage;
-					bestfeatureIndex = testfeatures[testfeatures.size() - 1];
+					bestfeatureIndex = testfeatures.size() - 1;
 					bestfeatures = testfeatures;
-				}
-				if (currpercentage > temppercentage)
-				{
-					temppercentage = currpercentage;
-					tempindex = i;					
 				}
 				testfeatures.pop_back();
 			}
 		}
-		bool remove = false;
-		//check next best feature to add in
+		
+		//if we get a better percentage when removing an element, comapared to adding an element, set flag
+		bool remove_element = false;
+		
+		//check next best feature to remove
 		for (unsigned int i = 0; i < testfeatures.size(); ++i)
 		{
 			//cout << "Removing Element: " << testfeatures[i] << endl;
+			
 			//erase the ith element, then test that
-			double save = testfeatures[i];
+			double saveValue = testfeatures[i];
 			testfeatures.erase(testfeatures.begin() + i);
 			
 			cout << "\tUsing feature(s) {";
 			displaySet(testfeatures);
 			cout << "} accuracy is ";
-			
 			currpercentage = leaveOneOutEvaluation(K, testfeatures);
 			cout << currpercentage * 100.0 << "%" << endl;
+			
 			if (currpercentage > bestpercentage)
 			{
-				okay = true;
-				remove = true;
+				better_feature_found = true;
+				remove_element = true;
+				
+				//best percentage overall
 				bestpercentage = currpercentage;
-				bestfeatureIndex = i;
+				bestfeatureIndex = i;	
 				bestfeatures = testfeatures;
 			}
-			
-			testfeatures.push_back(save);
+			if (currpercentage > temppercentage)
+			{
+				temppercentage = currpercentage;
+			}
+
+			//add the element back on, then sort again
+			testfeatures.push_back(saveValue);
 			sort(testfeatures.begin(), testfeatures.end());
 			
-			//add the element back on, then sort again
-			//cout << "Adding Element" << save << endl;
-
-			//cout << "sdf" << endl;
 		}
-		//testfeatures.push_back(tempindex);
-		if (remove)
+		//testfeatures.push_back(tempIndex);
+		if (remove_element)
 		{
 			testfeatures.erase(testfeatures.begin() + bestfeatureIndex);
 		}
 		else
 		{
-			testfeatures.push_back(tempindex);
+			testfeatures.push_back(tempValue);
 		}
 		
+		/*
+		if (bestpercentage > answerpercentage)
+		{
+			answer = bestfeatures;
+			answerpercentage = bestpercentage;
+		}*/
 		
 		cout << endl;
 		//if no best feature was found, finish searching
-		if (!okay)
+		if (!better_feature_found)
 		{
 			cout << "(Warning, Accuracy has decreased! Continuing search in case of local maxima)" << endl;
-			done = true;
+			//done = true;
 		}
+		sort(testfeatures.begin(), testfeatures.end());
 		cout << "Feature set {";
 		displaySet(testfeatures);
-		cout << "} was best, accuracy is " << bestpercentage * 100.0 << "%" << endl << endl;
+		cout << "} was best, accuracy is " << temppercentage * 100.0 << "%" << endl << endl;
 	}
+	
 	cout << "Finished search!! The best feature subset is {";
 	displaySet(bestfeatures);
 	cout << "}, which has an accuracy of " << bestpercentage * 100.0 << "%" << endl;
@@ -667,7 +666,7 @@ int main(int argc, char *argv[])
 	//if there is any command arg, automiatically run tests
 	if (argc != 1)
 	{
-		filename = "cs_170_small80.txt";
+		filename = "cs_170_small15.txt";
 		
 		cout << *argv[1] << endl;
 		//choose algorithm

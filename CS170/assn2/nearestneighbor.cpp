@@ -26,7 +26,7 @@ int c2Instances = 0;
 int numbInstances = 0;
 
 //subdivision
-int K = 10;
+int K = 1;
 
 double average = 0;
 double standarddev = 0;
@@ -521,6 +521,7 @@ void ricarithm()
 	//for adding elements
 	double tempIndex;
 	double tempValue;
+	double runpercentage;
 	
 	//for removing elements	
 	double temp2Value;
@@ -538,6 +539,8 @@ void ricarithm()
 		better_feature_found = false;
 		currpercentage = 0;
 		temppercentage = 0;
+		
+		runpercentage = 0;
 		
 		tempValue = 0;
 		tempIndex = 0;
@@ -572,6 +575,7 @@ void ricarithm()
 					//best percentage for this feature
 					temppercentage = currpercentage;
 					tempValue = testfeatures[testfeatures.size() - 1];
+					//cout << "testing: " << tempValue << endl;
 					tempIndex = testfeatures.size() - 1;
 					
 					//best percentage overall
@@ -601,6 +605,7 @@ void ricarithm()
 			currpercentage = leaveOneOutEvaluation(K, testfeatures);
 			cout << currpercentage * 100.0 << "%" << endl;
 			
+			//cout << "cp: " << currpercentage << " bp: " << bestpercentage << endl;
 			if (currpercentage > bestpercentage)
 			{
 				better_feature_found = true;
@@ -613,7 +618,9 @@ void ricarithm()
 			}
 			if (currpercentage > temppercentage)
 			{
+				remove_element = true;
 				temppercentage = currpercentage;
+				tempIndex = i;
 			}
 
 			//add the element back on, then sort again
@@ -624,19 +631,14 @@ void ricarithm()
 		//testfeatures.push_back(tempIndex);
 		if (remove_element)
 		{
-			testfeatures.erase(testfeatures.begin() + bestfeatureIndex);
+			cout << "removing index: " << tempIndex << endl;
+			testfeatures.erase(testfeatures.begin() + tempIndex);
 		}
 		else
 		{
+			cout << "adding: " << tempValue<< endl;
 			testfeatures.push_back(tempValue);
 		}
-		
-		/*
-		if (bestpercentage > answerpercentage)
-		{
-			answer = bestfeatures;
-			answerpercentage = bestpercentage;
-		}*/
 		
 		cout << endl;
 		//if no best feature was found, finish searching
@@ -666,7 +668,7 @@ int main(int argc, char *argv[])
 	//if there is any command arg, automiatically run tests
 	if (argc != 1)
 	{
-		filename = "cs_170_small15.txt";
+		filename = "cs_170_small80.txt";
 		
 		cout << *argv[1] << endl;
 		//choose algorithm

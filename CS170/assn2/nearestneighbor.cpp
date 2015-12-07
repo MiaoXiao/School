@@ -146,7 +146,7 @@ void readFile(string filename)
 		//check all features for this row until new line or end of file
 		for (unsigned int i = 0; i < numbFeatures; ++i)
 		{
-			cout << setprecision(20);
+			cout << setprecision(12);
 			f >> value;
 			average += value;
 			allValues.push_back(value);
@@ -547,7 +547,7 @@ int main(int argc, char *argv[])
 	//if there is any command arg, automiatically run tests
 	if (argc != 1)
 	{
-		filename = "cs_170_small80.txt";
+		filename = "cs_170_small15.txt";
 		
 		cout << *argv[1] << endl;
 		//choose algorithm

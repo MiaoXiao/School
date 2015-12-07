@@ -324,12 +324,20 @@ void displaySet(vector<int> v)
 	}
 }
 
-//forward selection algorithm
-void forwardSelection()
+//start with no features, add the feature that increases accuracy the most
+//if using ricarithm, ban the feature that decreases accuracy the most
+void forwardSelection(bool ricarithm)
 {
 	//vector for testing current features
 	vector<int> testfeatures;
 	vector<int> bestfeatures;
+	
+	//IF RICARITHM
+	//fill vector with banned features
+	vector<int> banList;
+	//keep track of lowest percent and corresponding feature
+	double lowPercent;
+	double lowFeature;
 	
 	//current percentage
 	double currpercentage;
@@ -338,32 +346,40 @@ void forwardSelection()
 	//feature number of best
 	double bestfeatureIndex;
 	
+	//temporarily store current run's temp percentage
 	double temppercentage;
 	double tempIndex;
 	
+	//if we are at an invalid feature, set to false
 	bool keepfeature = true;
-	
+	//flag to check if we should stop algorthm earlier
 	bool done = false;
 	
 	//set to true if new best feature was found
 	bool better_feature_found = false;
-	
+
 	cout << "Beginning Search." << endl;
-	for (unsigned x = 0; x < numbFeatures && !done; ++x)
+	for (unsigned int x = 0; x < numbFeatures && !done; ++x)
 	{
 		better_feature_found = false;
 		currpercentage = 0;
 		tempIndex = 0;
 		temppercentage = 0;
+		lowPercent = 100;
+		lowFeature = -1;
 		
 		//check next best feature to add in
 		for (unsigned int i = 0; i < numbFeatures; ++i)
 		{
 			keepfeature = true;
-			//check to see if we already have this feature
+			//check to see if we already have this feature, or if this feature is banned
 			for (unsigned int j = 0; j < testfeatures.size(); ++j)
 			{
 				if (testfeatures[j] == i) keepfeature = false;
+				for (unsigned k = 0; ricarithm && k < banList.size() && keepfeature; ++k)
+				{
+					if (banList[k] == i) keepfeature = false;
+				}
 			}
 			//only check accuracy if we did not check this feature yet
 			if (keepfeature)
@@ -376,6 +392,13 @@ void forwardSelection()
 				currpercentage = leaveOneOutEvaluation(K, testfeatures);
 				cout << currpercentage * 100.0 << "%" << endl;
 				
+				
+				//check if lowest percentage, for ricarithm
+				if (ricarithm && currpercentage < lowPercent)
+				{
+					lowPercent = currpercentage;
+					lowFeature = i;
+				}
 				if (currpercentage > bestpercentage)
 				{
 					better_feature_found = true;
@@ -402,17 +425,30 @@ void forwardSelection()
 		if (!better_feature_found)
 		{
 			cout << "(Warning, Accuracy has decreased! Continuing search in case of local maxima)" << endl;
-			done = true;
+			//done = true;
 		}
 		cout << "Feature set {";
 		displaySet(testfeatures);
-		cout << "} was best, accuracy is " << temppercentage * 100.0 << "%" << endl << endl;
+		cout << "} was best, accuracy is " << temppercentage * 100.0 << "%" << endl;
+		
+		//add lowest percentile feature to banlist
+		if (ricarithm)
+		{
+			banList.push_back(lowFeature);
+			cout << "Banning feature(s): {";
+			displaySet(banList);
+			cout << "} on the next search." << endl;
+			//if banlist size is equal to half the numb of features, we are done
+			if (banList.size() >= (numbFeatures - 1) / 2) done = true; 
+		}
+		cout << endl;	
 	}
 	cout << "Finished search!! The best feature subset is {";
 	displaySet(bestfeatures);
 	cout << "}, which has an accuracy of " << bestpercentage * 100.0 << "%" << endl;
 }
 
+//start with all features, remove the feature that increases accuracy the most
 void backwardElimination()
 {
 	//vector for testing current features
@@ -501,163 +537,6 @@ void backwardElimination()
 	cout << "}, which has an accuracy of " << answerpercentage * 100.0 << "%" << endl;
 }
 
-void ricarithm()
-{
-	//vector for testing current features
-	vector<int> testfeatures;
-	//push half elements
-	for (unsigned int i = 0; i < numbFeatures / 2; ++i) testfeatures.push_back(i);
-
-	vector<int> bestfeatures;
-	//best percentage for this set of features
-	double bestpercentage;
-	//feature number of best
-	double bestfeatureIndex;
-	
-	//current percentage
-	double currpercentage;
-	
-	double temppercentage;
-	//for adding elements
-	double tempIndex;
-	double tempValue;
-	double runpercentage;
-	
-	//for removing elements	
-	double temp2Value;
-	double temp2Index;
-	
-	bool keepfeature = true;
-	bool done = false;
-	
-	//set to true if new best feature was found
-	bool better_feature_found = false;
-	
-	cout << "Beginning Search." << endl;
-	for (unsigned x = 0; x < numbFeatures && !done; ++x)
-	{
-		better_feature_found = false;
-		currpercentage = 0;
-		temppercentage = 0;
-		
-		runpercentage = 0;
-		
-		tempValue = 0;
-		tempIndex = 0;
-
-		temp2Value = 0;
-		temp2Index = 0;
-		
-		//check next best feature to add in
-		for (unsigned int i = 0; i < numbFeatures; ++i)
-		{
-			keepfeature = true;
-			//check to see if we already have this feature
-			for (unsigned int j = 0; j < testfeatures.size(); ++j)
-			{
-				if (testfeatures[j] == i) keepfeature = false;
-			}
-			//only check accuracy if we did not check this feature yet
-			if (keepfeature)
-			{
-				testfeatures.push_back(i);
-				
-				cout << "\tUsing feature(s) {";
-				displaySet(testfeatures);
-				cout << "} accuracy is ";
-				currpercentage = leaveOneOutEvaluation(K, testfeatures);
-				cout << currpercentage * 100.0 << "%" << endl;
-				
-				if (currpercentage > bestpercentage)
-				{
-					better_feature_found = true;
-					
-					//best percentage for this feature
-					temppercentage = currpercentage;
-					tempValue = testfeatures[testfeatures.size() - 1];
-					//cout << "testing: " << tempValue << endl;
-					tempIndex = testfeatures.size() - 1;
-					
-					//best percentage overall
-					bestpercentage = currpercentage;
-					bestfeatureIndex = testfeatures.size() - 1;
-					bestfeatures = testfeatures;
-				}
-				testfeatures.pop_back();
-			}
-		}
-		
-		//if we get a better percentage when removing an element, comapared to adding an element, set flag
-		bool remove_element = false;
-		
-		//check next best feature to remove
-		for (unsigned int i = 0; i < testfeatures.size(); ++i)
-		{
-			//cout << "Removing Element: " << testfeatures[i] << endl;
-			
-			//erase the ith element, then test that
-			double saveValue = testfeatures[i];
-			testfeatures.erase(testfeatures.begin() + i);
-			
-			cout << "\tUsing feature(s) {";
-			displaySet(testfeatures);
-			cout << "} accuracy is ";
-			currpercentage = leaveOneOutEvaluation(K, testfeatures);
-			cout << currpercentage * 100.0 << "%" << endl;
-			
-			//cout << "cp: " << currpercentage << " bp: " << bestpercentage << endl;
-			if (currpercentage > bestpercentage)
-			{
-				better_feature_found = true;
-				remove_element = true;
-				
-				//best percentage overall
-				bestpercentage = currpercentage;
-				bestfeatureIndex = i;	
-				bestfeatures = testfeatures;
-			}
-			if (currpercentage > temppercentage)
-			{
-				remove_element = true;
-				temppercentage = currpercentage;
-				tempIndex = i;
-			}
-
-			//add the element back on, then sort again
-			testfeatures.push_back(saveValue);
-			sort(testfeatures.begin(), testfeatures.end());
-			
-		}
-		//testfeatures.push_back(tempIndex);
-		if (remove_element)
-		{
-			cout << "removing index: " << tempIndex << endl;
-			testfeatures.erase(testfeatures.begin() + tempIndex);
-		}
-		else
-		{
-			cout << "adding: " << tempValue<< endl;
-			testfeatures.push_back(tempValue);
-		}
-		
-		cout << endl;
-		//if no best feature was found, finish searching
-		if (!better_feature_found)
-		{
-			cout << "(Warning, Accuracy has decreased! Continuing search in case of local maxima)" << endl;
-			//done = true;
-		}
-		sort(testfeatures.begin(), testfeatures.end());
-		cout << "Feature set {";
-		displaySet(testfeatures);
-		cout << "} was best, accuracy is " << temppercentage * 100.0 << "%" << endl << endl;
-	}
-	
-	cout << "Finished search!! The best feature subset is {";
-	displaySet(bestfeatures);
-	cout << "}, which has an accuracy of " << bestpercentage * 100.0 << "%" << endl;
-}
-
 int main(int argc, char *argv[])
 {
 	srand(time(NULL));
@@ -713,13 +592,13 @@ int main(int argc, char *argv[])
 	switch (algorithm)
 	{
 		case ForwardSelection:
-			forwardSelection();
+			forwardSelection(false);
 			break;
 		case BackwardElimination:
 			backwardElimination();
 			break;
 		case Ricarithm:
-			ricarithm();
+			forwardSelection(true);
 			break;
 	}
 }

@@ -25,8 +25,11 @@ int c1Instances = 0;
 int c2Instances = 0;
 int numbInstances = 0;
 
+//number of iterations (for testing speed)
+int numbIterations = 0;
+
 //subdivision
-int K = 1;
+int K = 10;
 
 double average = 0;
 double standarddev = 0;
@@ -233,6 +236,7 @@ struct Compare
 //f is a vector of all features to test
 double leaveOneOutEvaluation(int k, vector<int> f)
 {
+	numbIterations++;
 	//create graph with all relevant features
 	Graph g;
 	//add all c1 points
@@ -547,7 +551,7 @@ int main(int argc, char *argv[])
 	//if there is any command arg, automiatically run tests
 	if (argc != 1)
 	{
-		filename = "cs_170_small15.txt";
+		filename = "cs_170_large15.txt";
 		
 		cout << *argv[1] << endl;
 		//choose algorithm
@@ -585,7 +589,7 @@ int main(int argc, char *argv[])
 	
 	cout << "This data set has " << numbFeatures << " features (not including the class attribute), with " << numbInstances << " instances. " << endl << endl;
 	cout << "Please wait while I normalize the data...";
-	normalizeData();
+	//normalizeData();
 	cout << "Done!" << endl << endl;
 	
 	//choose specified algorithm, or run all algorithms
@@ -601,4 +605,5 @@ int main(int argc, char *argv[])
 			forwardSelection(true);
 			break;
 	}
+	cout << "Numb Iterations: " << numbIterations << endl;
 }
